@@ -1,0 +1,22 @@
+{
+    "name": "maxpertici/markup",
+    "description": "A flexible system for building and rendering HTML markup structures",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Max Pertici",
+            "email": "hello@maxpertici.fr"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "MaxPertici\\Markup\\": "src/"
+        }
+    },
+    "require": {
+        "php": ">=8.0"
+    },
+    "minimum-stability": "stable"
+}
+
