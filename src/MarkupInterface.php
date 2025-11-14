@@ -15,7 +15,7 @@ namespace MaxPertici\Markup;
  * This interface must be implemented by all markup classes.
  * It defines two core methods:
  * - getMarkup(): Returns the markup as a string (return mode)
- * - render(): Directly outputs the markup to the browser (echo mode)
+ * - print(): Directly outputs the markup to the browser (echo mode)
  */
 interface MarkupInterface {
 	/**
@@ -32,7 +32,7 @@ interface MarkupInterface {
 	public function getMarkup(): string;
 
 	/**
-	 * Renders the markup directly to the browser.
+	 * Prints the markup directly to the browser.
 	 *
 	 * This method generates the markup and immediately outputs it using echo.
 	 * Use this when you want to directly display the markup in a template
@@ -42,6 +42,6 @@ interface MarkupInterface {
 	 *
 	 * @return void
 	 */
-	public function render(): void;
+	public function print(): void;
 }
 

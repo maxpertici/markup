@@ -124,13 +124,13 @@ class Markup implements MarkupInterface {
 	}
 
 	/**
-	 * Render the markup directly to output.
+	 * Print the markup directly to output.
 	 *
 	 * @since 1.0.0
 	 *
 	 * @return void
 	 */
-	public function render(): void {
+	public function print(): void {
 		$this->streaming = true;
 		$this->execute();
 	}
@@ -159,8 +159,12 @@ class Markup implements MarkupInterface {
 				$that->output( $that->children_opener_tag() );
 
 				if ( $value instanceof Markup ) {
-					$value->streaming = $that->streaming;
-					$that->output( $value->execute( path: self::$path ) );
+					// Use getMarkup() or print() to respect BlockMarkup's overrides
+					if ( $that->streaming ) {
+						$value->print();
+					} else {
+						$that->output( $value->getMarkup() );
+					}
 				} elseif ( is_callable( $value ) ) {
 					// Support des callbacks (template parts, etc.)
 					if ( $that->streaming ) {
@@ -219,9 +223,18 @@ class Markup implements MarkupInterface {
 		foreach ( $this->wrapper_attributes as $attribute => $value ) {
 			$attributes[] = $attribute . '="' . $value . '"';
 		}
-		$attributes = implode( ' ', $attributes );
-		$attributes = ' ' . $attributes;
-		$opener     = str_replace( '%attributes%', $attributes, $opener );
+		$attributes_str = implode( ' ', $attributes );
+		// Only add space if there are attributes
+		$attributes_str = ! empty( $attributes_str ) ? ' ' . $attributes_str : '';
+		$opener         = str_replace( '%attributes%', $attributes_str, $opener );
+
+		// Clean up empty attributes (e.g., class="")
+		$opener = preg_replace( '/\s+class=""/', '', $opener );
+		$opener = preg_replace( '/\s+id=""/', '', $opener );
+		
+		// Clean up multiple spaces
+		$opener = preg_replace( '/\s+/', ' ', $opener );
+		$opener = preg_replace( '/\s+>/', '>', $opener );
 
 		return $opener;
 	}
