@@ -572,7 +572,47 @@ class Markup implements MarkupInterface {
 	private function renderSlot( Slot $slot ): string {
 		$name        = $slot->name();
 		$has_content = isset( $this->slots_content[ $name ] ) && ! empty( $this->slots_content[ $name ] );
-		$content     = '';
+		$wrapper     = $slot->wrapper();
+
+		// Check if we should render anything
+		if ( ! $has_content && ! $slot->isPreserved() ) {
+			return '';
+		}
+
+		// In streaming mode, handle wrapper differently
+		if ( $this->streaming ) {
+			// Output opening wrapper
+			if ( ! empty( $wrapper ) ) {
+				$wrapper_parts = explode( '%slot%', $wrapper );
+				$this->output( $wrapper_parts[0] );
+			}
+
+			// Render all items in the slot
+			if ( $has_content ) {
+				foreach ( $this->slots_content[ $name ] as $item ) {
+					if ( $item instanceof Markup ) {
+						$item->print();
+					} elseif ( $item instanceof Slot ) {
+						// Render nested Slot recursively
+						$this->renderSlot( $item );
+					} elseif ( is_callable( $item ) ) {
+						call_user_func( $item );
+					} elseif ( is_string( $item ) ) {
+						$this->output( $item );
+					}
+				}
+			}
+
+			// Output closing wrapper
+			if ( ! empty( $wrapper ) && isset( $wrapper_parts[1] ) ) {
+				$this->output( $wrapper_parts[1] );
+			}
+
+			return '';
+		}
+
+		// Non-streaming mode: accumulate content
+		$content = '';
 
 		// Render all items in the slot if there's content
 		if ( $has_content ) {
@@ -593,15 +633,8 @@ class Markup implements MarkupInterface {
 		}
 
 		// Apply wrapper if slot has one
-		$wrapper = $slot->wrapper();
 		if ( ! empty( $wrapper ) ) {
-			// Check if we should preserve wrapper even if empty
-			if ( $has_content || $slot->isPreserved() ) {
-				$content = str_replace( '%slot%', $content, $wrapper );
-			} else {
-				// No content and shouldn't preserve wrapper = return empty
-				return '';
-			}
+			$content = str_replace( '%slot%', $content, $wrapper );
 		}
 
 		return $content;
