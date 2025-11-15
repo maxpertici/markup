@@ -376,6 +376,65 @@ class Markup implements MarkupInterface {
 	}
 
 	/**
+	 * Gets the current children array.
+	 *
+	 * When called without parameters, returns the array of all child elements.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return array Array of child elements.
+	 */
+	public function getChildren(): array {
+		return $this->children;
+	}
+
+	/**
+	 * Replaces the entire children array with a new one.
+	 *
+	 * This method allows you to completely replace the children array,
+	 * useful for reordering or filtering children. All Slot objects in
+	 * the new array will be automatically registered.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param array $children The new children array.
+	 * @return self Returns $this for method chaining.
+	 */
+	public function setChildren( array $children ): self {
+		// Reset children and declared slots
+		$this->children       = [];
+		$this->declared_slots = [];
+
+		// Add each item, registering Slots as we go
+		foreach ( $children as $child ) {
+			$this->addChildItem( $child );
+		}
+
+		return $this;
+	}
+
+	/**
+	 * Orders children using a callback function.
+	 *
+	 * The callback receives the current children array and should return
+	 * a reordered array. This method is chainable for fluent interfaces.
+	 *
+	 * Example usage:
+	 * ```php
+	 * $markup->orderChildren(fn($children) => array_reverse($children));
+	 * ```
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param callable $callback Function that receives children array and returns reordered array.
+	 * @return self Returns $this for method chaining.
+	 */
+	public function orderChildren( callable $callback ): self {
+		$reordered = call_user_func( $callback, $this->children );
+		return $this->setChildren( $reordered );
+	}
+
+	/**
 	 * Adds a single child item, detecting and registering Slot objects.
 	 *
 	 * @since 1.0.0
