@@ -382,6 +382,36 @@ class Markup implements MarkupInterface {
 	}
 
 	/**
+	 * Conditionally executes a callback based on a boolean condition.
+	 *
+	 * This method allows conditional method chaining. If the condition is true,
+	 * the callback is executed with the current Markup instance as its parameter.
+	 * The method always returns $this for continued chaining, regardless of the condition.
+	 *
+	 * Example usage:
+	 * ```php
+	 * $markup = new Markup()
+	 *     ->children('Always added')
+	 *     ->when($user_is_admin, function($markup) {
+	 *         $markup->children('Admin only content');
+	 *     })
+	 *     ->children('Always added too');
+	 * ```
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param bool     $condition The condition to evaluate.
+	 * @param callable $callback  The callback to execute if condition is true. Receives $this as parameter.
+	 * @return self Returns $this for method chaining.
+	 */
+	public function when( bool $condition, callable $callback ): self {
+		if ( $condition ) {
+			call_user_func( $callback, $this );
+		}
+		return $this;
+	}
+
+	/**
 	 * Renders and returns the generated markup as a string.
 	 *
 	 * @since 1.0.0
