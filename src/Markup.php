@@ -589,6 +589,42 @@ class Markup implements MarkupInterface {
 	}
 
 	/**
+	 * Iterates over an array and executes a callback for each element.
+	 *
+	 * This method allows looping through data to generate repetitive markup.
+	 * The callback receives three parameters: the current item value, the item key/index,
+	 * and the Markup instance for method chaining.
+	 *
+	 * Example usage:
+	 * ```php
+	 * $users = [
+	 *     ['name' => 'John', 'email' => 'john@example.com'],
+	 *     ['name' => 'Jane', 'email' => 'jane@example.com']
+	 * ];
+	 *
+	 * $markup = new Markup('<ul>%children%</ul>')
+	 *     ->each($users, function($user, $index, $markup) {
+	 *         $markup->children(
+	 *             new Markup('<li>%children%</li>')
+	 *                 ->children($user['name'] . ' - ' . $user['email'])
+	 *         );
+	 *     });
+	 * ```
+	 *
+	 * @since 1.3.0
+	 *
+	 * @param array    $items    The array to iterate over.
+	 * @param callable $callback The callback to execute for each item. Receives ($item, $key, $markup).
+	 * @return self Returns $this for method chaining.
+	 */
+	public function each( array $items, callable $callback ): self {
+		foreach ( $items as $key => $item ) {
+			call_user_func( $callback, $item, $key, $this );
+		}
+		return $this;
+	}
+
+	/**
 	 * Renders and returns the generated markup as a string.
 	 *
 	 * @since 1.0.0
