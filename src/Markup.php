@@ -189,7 +189,7 @@ class Markup implements MarkupInterface {
 	 * Accepts a single class name, multiple class names as separate arguments,
 	 * or an array of class names. Duplicate classes are automatically prevented.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param string|array ...$classes CSS class name(s) to add.
 	 * @return self Returns $this for method chaining.
@@ -217,7 +217,7 @@ class Markup implements MarkupInterface {
 	 * Accepts a single class name, multiple class names as separate arguments,
 	 * or an array of class names.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param string|array ...$classes CSS class name(s) to remove.
 	 * @return self Returns $this for method chaining.
@@ -240,7 +240,7 @@ class Markup implements MarkupInterface {
 	/**
 	 * Checks if the wrapper has a specific CSS class.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param string $class The CSS class name to check.
 	 * @return bool True if the class exists, false otherwise.
@@ -256,7 +256,7 @@ class Markup implements MarkupInterface {
 	 * When called with a parameter, replaces all existing classes and returns $this for chaining.
 	 * To add or remove specific classes, use addClass() or removeClass() instead.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param array|null $classes Optional. Array of CSS class names to set. If null, acts as a getter.
 	 * @return self|array Returns $this when setting (for chaining), or the classes array when getting.
@@ -276,7 +276,7 @@ class Markup implements MarkupInterface {
 	 * If value is provided, sets the attribute. If value is null, removes the attribute.
 	 * For boolean attributes (e.g., disabled, readonly), pass the attribute name as the value.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param string      $name  The attribute name.
 	 * @param string|null $value The attribute value. Pass null to remove the attribute.
@@ -294,7 +294,7 @@ class Markup implements MarkupInterface {
 	/**
 	 * Removes an HTML attribute from the wrapper element.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param string $name The attribute name to remove.
 	 * @return self Returns $this for method chaining.
@@ -307,7 +307,7 @@ class Markup implements MarkupInterface {
 	/**
 	 * Checks if the wrapper has a specific HTML attribute.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param string $name The attribute name to check.
 	 * @return bool True if the attribute exists, false otherwise.
@@ -319,7 +319,7 @@ class Markup implements MarkupInterface {
 	/**
 	 * Gets the value of a specific HTML attribute.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param string $name The attribute name.
 	 * @return string|null The attribute value or null if not set.
@@ -335,7 +335,7 @@ class Markup implements MarkupInterface {
 	 * When called with a parameter, replaces all existing attributes and returns $this for chaining.
 	 * To add or remove specific attributes, use setAttribute() or removeAttribute() instead.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param array|null $attributes Optional. Associative array of attribute names and values. If null, acts as a getter.
 	 * @return self|array Returns $this when setting (for chaining), or the attributes array when getting.
@@ -380,7 +380,7 @@ class Markup implements MarkupInterface {
 	 *
 	 * When called without parameters, returns the array of all child elements.
 	 *
-	 * @since 1.4.0
+	 * @since 1.0.0
 	 *
 	 * @return array Array of child elements.
 	 */
@@ -395,7 +395,7 @@ class Markup implements MarkupInterface {
 	 * useful for reordering or filtering children. All Slot objects in
 	 * the new array will be automatically registered.
 	 *
-	 * @since 1.4.0
+	 * @since 1.0.0
 	 *
 	 * @param array $children The new children array.
 	 * @return self Returns $this for method chaining.
@@ -424,7 +424,7 @@ class Markup implements MarkupInterface {
 	 * $markup->orderChildren(fn($children) => array_reverse($children));
 	 * ```
 	 *
-	 * @since 1.4.0
+	 * @since 1.0.0
 	 *
 	 * @param callable $callback Function that receives children array and returns reordered array.
 	 * @return self Returns $this for method chaining.
@@ -670,7 +670,7 @@ class Markup implements MarkupInterface {
 	 *     });
 	 * ```
 	 *
-	 * @since 1.3.0
+	 * @since 1.0.0
 	 *
 	 * @param array    $items    The array to iterate over.
 	 * @param callable $callback The callback to execute for each item. Receives ($item, $key, $markup).
