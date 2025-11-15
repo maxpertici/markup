@@ -184,6 +184,172 @@ class Markup implements MarkupInterface {
 	}
 
 	/**
+	 * Adds one or more CSS classes to the wrapper element.
+	 *
+	 * Accepts a single class name, multiple class names as separate arguments,
+	 * or an array of class names. Duplicate classes are automatically prevented.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param string|array ...$classes CSS class name(s) to add.
+	 * @return self Returns $this for method chaining.
+	 */
+	public function addClass( ...$classes ): self {
+		foreach ( $classes as $class ) {
+			if ( is_array( $class ) ) {
+				foreach ( $class as $c ) {
+					if ( ! in_array( $c, $this->wrapper_class, true ) ) {
+						$this->wrapper_class[] = $c;
+					}
+				}
+			} else {
+				if ( ! in_array( $class, $this->wrapper_class, true ) ) {
+					$this->wrapper_class[] = $class;
+				}
+			}
+		}
+		return $this;
+	}
+
+	/**
+	 * Removes one or more CSS classes from the wrapper element.
+	 *
+	 * Accepts a single class name, multiple class names as separate arguments,
+	 * or an array of class names.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param string|array ...$classes CSS class name(s) to remove.
+	 * @return self Returns $this for method chaining.
+	 */
+	public function removeClass( ...$classes ): self {
+		foreach ( $classes as $class ) {
+			if ( is_array( $class ) ) {
+				foreach ( $class as $c ) {
+					$this->wrapper_class = array_diff( $this->wrapper_class, array( $c ) );
+				}
+			} else {
+				$this->wrapper_class = array_diff( $this->wrapper_class, array( $class ) );
+			}
+		}
+		// Re-index array to avoid gaps in numeric keys
+		$this->wrapper_class = array_values( $this->wrapper_class );
+		return $this;
+	}
+
+	/**
+	 * Checks if the wrapper has a specific CSS class.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param string $class The CSS class name to check.
+	 * @return bool True if the class exists, false otherwise.
+	 */
+	public function hasClass( string $class ): bool {
+		return in_array( $class, $this->wrapper_class, true );
+	}
+
+	/**
+	 * Gets or sets all CSS classes for the wrapper element.
+	 *
+	 * When called without a parameter, returns the current classes array.
+	 * When called with a parameter, replaces all existing classes and returns $this for chaining.
+	 * To add or remove specific classes, use addClass() or removeClass() instead.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param array|null $classes Optional. Array of CSS class names to set. If null, acts as a getter.
+	 * @return self|array Returns $this when setting (for chaining), or the classes array when getting.
+	 */
+	public function classes( ?array $classes = null ) {
+		if ( null === $classes ) {
+			return $this->wrapper_class;
+		}
+
+		$this->wrapper_class = array_values( array_unique( $classes ) );
+		return $this;
+	}
+
+	/**
+	 * Sets or removes an HTML attribute on the wrapper element.
+	 *
+	 * If value is provided, sets the attribute. If value is null, removes the attribute.
+	 * For boolean attributes (e.g., disabled, readonly), pass the attribute name as the value.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param string      $name  The attribute name.
+	 * @param string|null $value The attribute value. Pass null to remove the attribute.
+	 * @return self Returns $this for method chaining.
+	 */
+	public function setAttribute( string $name, ?string $value ): self {
+		if ( null === $value ) {
+			unset( $this->wrapper_attributes[ $name ] );
+		} else {
+			$this->wrapper_attributes[ $name ] = $value;
+		}
+		return $this;
+	}
+
+	/**
+	 * Removes an HTML attribute from the wrapper element.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param string $name The attribute name to remove.
+	 * @return self Returns $this for method chaining.
+	 */
+	public function removeAttribute( string $name ): self {
+		unset( $this->wrapper_attributes[ $name ] );
+		return $this;
+	}
+
+	/**
+	 * Checks if the wrapper has a specific HTML attribute.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param string $name The attribute name to check.
+	 * @return bool True if the attribute exists, false otherwise.
+	 */
+	public function hasAttribute( string $name ): bool {
+		return isset( $this->wrapper_attributes[ $name ] );
+	}
+
+	/**
+	 * Gets the value of a specific HTML attribute.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param string $name The attribute name.
+	 * @return string|null The attribute value or null if not set.
+	 */
+	public function getAttribute( string $name ): ?string {
+		return $this->wrapper_attributes[ $name ] ?? null;
+	}
+
+	/**
+	 * Gets or sets all HTML attributes for the wrapper element.
+	 *
+	 * When called without a parameter, returns the current attributes array.
+	 * When called with a parameter, replaces all existing attributes and returns $this for chaining.
+	 * To add or remove specific attributes, use setAttribute() or removeAttribute() instead.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param array|null $attributes Optional. Associative array of attribute names and values. If null, acts as a getter.
+	 * @return self|array Returns $this when setting (for chaining), or the attributes array when getting.
+	 */
+	public function attributes( ?array $attributes = null ) {
+		if ( null === $attributes ) {
+			return $this->wrapper_attributes;
+		}
+
+		$this->wrapper_attributes = $attributes;
+		return $this;
+	}
+
+	/**
 	 * Adds child elements to the markup.
 	 *
 	 * Children can be strings, Markup instances, Slot declarations, or callable functions.
@@ -228,16 +394,27 @@ class Markup implements MarkupInterface {
 	}
 
 	/**
-	 * Gets all declared Slot objects.
+	 * Gets all declared Slot objects, optionally filtered by names.
 	 *
 	 * Returns Slot objects that were added as children.
+	 * When called without parameter, returns all slots.
+	 * When called with an array of names, returns only those slots.
 	 *
 	 * @since 1.0.0
 	 *
+	 * @param array|null $names Optional. Array of slot names to filter. If null, returns all slots.
 	 * @return array<string, Slot> Array of Slot objects keyed by slot name.
 	 */
-	public function slots(): array {
-		return $this->declared_slots;
+	public function slots( ?array $names = null ): array {
+		if ( null === $names ) {
+			return $this->declared_slots;
+		}
+
+		return array_filter(
+			$this->declared_slots,
+			fn( $key ) => in_array( $key, $names, true ),
+			ARRAY_FILTER_USE_KEY
+		);
 	}
 
 	/**
@@ -311,7 +488,7 @@ class Markup implements MarkupInterface {
 	 *
 	 * @return array Array of declared slot names.
 	 */
-	public function getAvailableSlots(): array {
+	public function slotNames(): array {
 		return array_keys( $this->declared_slots );
 	}
 
@@ -322,7 +499,7 @@ class Markup implements MarkupInterface {
 	 *
 	 * @return array Array of slot names that have been filled.
 	 */
-	public function getFilledSlots(): array {
+	public function filledSlotNames(): array {
 		$filled = [];
 
 		foreach ( $this->slots_content as $name => $items ) {
