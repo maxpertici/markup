@@ -14,12 +14,12 @@ namespace MaxPertici\Markup;
  *
  * This interface must be implemented by all markup classes.
  * It defines two core methods:
- * - getMarkup(): Returns the markup as a string (return mode)
+ * - render(): Returns the markup as a string (return mode)
  * - print(): Directly outputs the markup to the browser (echo mode)
  */
 interface MarkupInterface {
 	/**
-	 * Retrieves the markup as a string.
+	 * Renders and returns the markup as a string.
 	 *
 	 * This method generates and returns the markup content as a string
 	 * without outputting it. Use this when you need to store, manipulate,
@@ -29,7 +29,7 @@ interface MarkupInterface {
 	 *
 	 * @return string The generated markup content.
 	 */
-	public function getMarkup(): string;
+	public function render(): string;
 
 	/**
 	 * Prints the markup directly to the browser.

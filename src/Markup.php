@@ -28,6 +28,14 @@ class Markup implements MarkupInterface {
 	private string $markup = '';
 
 	/**
+	 * The slug identifier for this markup instance.
+	 *
+	 * @since 1.0.0
+	 * @var string|null
+	 */
+	protected ?string $slug = null;
+
+	/**
 	 * The wrapper HTML template with %children% placeholder.
 	 *
 	 * @since 1.0.0
@@ -112,13 +120,33 @@ class Markup implements MarkupInterface {
 	}
 
 	/**
-	 * Get the generated markup as a string.
+	 * Sets or retrieves the slug identifier for this markup instance.
+	 *
+	 * When called with a parameter, sets the slug and returns $this for method chaining.
+	 * When called without a parameter, returns the current slug value.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string|null $slug Optional. The slug to set. If null, acts as a getter.
+	 * @return self|string|null Returns $this when setting (for chaining), or the slug value when getting.
+	 */
+	public function slug( ?string $slug = null ) {
+		if ( null === $slug ) {
+			return $this->slug;
+		}
+
+		$this->slug = $slug;
+		return $this;
+	}
+
+	/**
+	 * Renders and returns the generated markup as a string.
 	 *
 	 * @since 1.0.0
 	 *
 	 * @return string The generated HTML markup.
 	 */
-	public function getMarkup(): string {
+	public function render(): string {
 		$this->streaming = false;
 		return $this->execute();
 	}
@@ -159,11 +187,11 @@ class Markup implements MarkupInterface {
 				$that->output( $that->children_opener_tag() );
 
 				if ( $value instanceof Markup ) {
-					// Use getMarkup() or print() to respect BlockMarkup's overrides
+					// Use render() or print() to respect BlockMarkup's overrides
 					if ( $that->streaming ) {
 						$value->print();
 					} else {
-						$that->output( $value->getMarkup() );
+						$that->output( $value->render() );
 					}
 				} elseif ( is_callable( $value ) ) {
 					// Support des callbacks (template parts, etc.)
