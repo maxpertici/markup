@@ -36,6 +36,14 @@ class Markup implements MarkupInterface {
 	protected ?string $slug = null;
 
 	/**
+	 * The description for this markup instance.
+	 *
+	 * @since 1.0.0
+	 * @var string|null
+	 */
+	protected ?string $description = null;
+
+	/**
 	 * The wrapper HTML template with %children% placeholder.
 	 *
 	 * @since 1.0.0
@@ -74,6 +82,22 @@ class Markup implements MarkupInterface {
 	 * @var array
 	 */
 	protected array $children = [];
+
+	/**
+	 * Array of registered Slot declarations keyed by slot name.
+	 *
+	 * @since 1.0.0
+	 * @var array<string, Slot>
+	 */
+	protected array $declared_slots = [];
+
+	/**
+	 * Array of slot content keyed by slot name.
+	 *
+	 * @since 1.0.0
+	 * @var array<string, array>
+	 */
+	protected array $slots_content = [];
 
 	/**
 	 * Whether to output content directly or store it.
@@ -140,6 +164,224 @@ class Markup implements MarkupInterface {
 	}
 
 	/**
+	 * Sets or retrieves the description for this markup instance.
+	 *
+	 * When called with a parameter, sets the description and returns $this for method chaining.
+	 * When called without a parameter, returns the current description value.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string|null $description Optional. The description to set. If null, acts as a getter.
+	 * @return self|string|null Returns $this when setting (for chaining), or the description value when getting.
+	 */
+	public function description( ?string $description = null ) {
+		if ( null === $description ) {
+			return $this->description;
+		}
+
+		$this->description = $description;
+		return $this;
+	}
+
+	/**
+	 * Adds child elements to the markup.
+	 *
+	 * Children can be strings, Markup instances, Slot declarations, or callable functions.
+	 * When a Slot object is added, it is automatically registered for later reference.
+	 * Multiple children can be passed as separate arguments or as an array.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param mixed ...$children Child elements to add (strings, Markup instances, Slot objects, or callables).
+	 * @return self Returns $this for method chaining.
+	 */
+	public function children( ...$children ): self {
+		foreach ( $children as $child ) {
+			if ( is_array( $child ) ) {
+				// If an array is passed, add each element
+				foreach ( $child as $item ) {
+					$this->addChildItem( $item );
+				}
+			} else {
+				$this->addChildItem( $child );
+			}
+		}
+		return $this;
+	}
+
+	/**
+	 * Adds a single child item, detecting and registering Slot objects.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param mixed $item The child item to add.
+	 * @return void
+	 */
+	private function addChildItem( $item ): void {
+		// If it's a Slot object, register it
+		if ( $item instanceof Slot ) {
+			$this->declared_slots[ $item->name() ] = $item;
+		}
+
+		// Add to children array
+		$this->children[] = $item;
+	}
+
+	/**
+	 * Gets all declared Slot objects.
+	 *
+	 * Returns Slot objects that were added as children.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, Slot> Array of Slot objects keyed by slot name.
+	 */
+	public function slots(): array {
+		return $this->declared_slots;
+	}
+
+	/**
+	 * Gets a specific declared Slot object by name.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $name The name of the slot to retrieve.
+	 * @return Slot|null The Slot object if found, null otherwise.
+	 */
+	public function getSlot( string $name ): ?Slot {
+		return $this->declared_slots[ $name ] ?? null;
+	}
+
+	/**
+	 * Adds content to a named slot.
+	 *
+	 * Accepts arrays or any supported type (string, Markup, Slot, callable).
+	 * In the wrapper template, use %slot:name% placeholder to position the slot.
+	 * Multiple elements can be added to the same slot.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $name  The name of the slot.
+	 * @param mixed  $items Items to add - can be an array or any supported type (string, Markup, Slot, callable).
+	 * @return self Returns $this for method chaining.
+	 */
+	public function slot( string $name, $items ): self {
+		// Initialize slot content array if not exists
+		if ( ! isset( $this->slots_content[ $name ] ) ) {
+			$this->slots_content[ $name ] = [];
+		}
+
+		// If items is an array, add each element
+		if ( is_array( $items ) ) {
+			foreach ( $items as $item ) {
+				$this->addSlotItem( $name, $item );
+			}
+		} else {
+			// Single item
+			$this->addSlotItem( $name, $items );
+		}
+
+		return $this;
+	}
+
+	/**
+	 * Adds a single item to a slot's content.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $name The slot name.
+	 * @param mixed  $item The item to add.
+	 * @return void
+	 */
+	private function addSlotItem( string $name, $item ): void {
+		// Register Slot objects if they're being added as slot content
+		if ( $item instanceof Slot ) {
+			$this->declared_slots[ $item->name() ] = $item;
+		}
+
+		$this->slots_content[ $name ][] = $item;
+	}
+
+	/**
+	 * Gets the names of all declared slots.
+	 *
+	 * Returns an array of slot names that have been added as Slot children.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array Array of declared slot names.
+	 */
+	public function getAvailableSlots(): array {
+		return array_keys( $this->declared_slots );
+	}
+
+	/**
+	 * Gets the names of all slots that have been filled with content.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array Array of slot names that have been filled.
+	 */
+	public function getFilledSlots(): array {
+		$filled = [];
+
+		foreach ( $this->slots_content as $name => $items ) {
+			if ( ! empty( $items ) ) {
+				$filled[] = $name;
+			}
+		}
+
+		return $filled;
+	}
+
+	/**
+	 * Checks if a slot has been declared (added as a Slot child).
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $name The name of the slot to check.
+	 * @return bool True if the slot has been declared, false otherwise.
+	 */
+	public function hasSlot( string $name ): bool {
+		return isset( $this->declared_slots[ $name ] );
+	}
+
+	/**
+	 * Checks if a slot has been filled with content.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $name The name of the slot to check.
+	 * @return bool True if the slot has been filled, false otherwise.
+	 */
+	public function isSlotFilled( string $name ): bool {
+		return isset( $this->slots_content[ $name ] ) && ! empty( $this->slots_content[ $name ] );
+	}
+
+	/**
+	 * Gets information about all declared slots.
+	 *
+	 * Returns an associative array with slot names as keys and their information.
+	 * Each slot includes: name, description, wrapper, filled status, and items count.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array Associative array of slot information.
+	 */
+	public function getSlotsInfo(): array {
+		$info = [];
+
+		foreach ( $this->declared_slots as $name => $slot ) {
+			$slot_info                = $slot->toArray();
+			$slot_info['filled']      = $this->isSlotFilled( $name );
+			$slot_info['items_count'] = isset( $this->slots_content[ $name ] ) ? count( $this->slots_content[ $name ] ) : 0;
+			$info[ $name ]            = $slot_info;
+		}
+
+		return $info;
+	}
+
+	/**
 	 * Renders and returns the generated markup as a string.
 	 *
 	 * @since 1.0.0
@@ -178,13 +420,20 @@ class Markup implements MarkupInterface {
 
 		self::$path   = $path;
 		$this->markup = '';
-		$this->output( $this->wrapper_opener_tag() );
+		$this->output( $this->wrapperOpenerTag() );
 		$that = $this;
 
 		$walker = new MarkupDataTreeWalker(
 			function ( $value, $path ) use ( $that ): void {
 				self::$path = $path;
-				$that->output( $that->children_opener_tag() );
+
+				// If it's a Slot object, render its content
+				if ( $value instanceof Slot ) {
+					$that->output( $that->renderSlot( $value ) );
+					return;
+				}
+
+				$that->output( $that->childrenOpenerTag() );
 
 				if ( $value instanceof Markup ) {
 					// Use render() or print() to respect BlockMarkup's overrides
@@ -206,13 +455,13 @@ class Markup implements MarkupInterface {
 					$that->output( $value );
 				}
 
-				$that->output( $that->children_closer_tag() );
+				$that->output( $that->childrenCloserTag() );
 			}
 		);
 
 		$walker->walk( $this->children, self::$path );
 
-		$this->output( $this->container_closer_tag() );
+		$this->output( $this->containerCloserTag() );
 		return $this->markup;
 	}
 
@@ -241,7 +490,7 @@ class Markup implements MarkupInterface {
 	 *
 	 * @return string The wrapper opening HTML tag.
 	 */
-	private function wrapper_opener_tag(): string {
+	private function wrapperOpenerTag(): string {
 		$children_wrap = explode( '%children%', (string) $this->wrapper );
 		$opener        = $children_wrap[0];
 
@@ -274,7 +523,7 @@ class Markup implements MarkupInterface {
 	 *
 	 * @return string The wrapper closing HTML tag.
 	 */
-	private function container_closer_tag(): string {
+	private function containerCloserTag(): string {
 		$closer    = '';
 		$container = explode( '%children%', (string) $this->wrapper );
 		if ( isset( $container[1] ) ) {
@@ -290,7 +539,7 @@ class Markup implements MarkupInterface {
 	 *
 	 * @return string The children wrapper opening HTML tag.
 	 */
-	private function children_opener_tag(): string {
+	private function childrenOpenerTag(): string {
 		$container = explode( '%child%', (string) $this->children_wrapper );
 		$opener    = $container[0];
 		return $opener;
@@ -303,7 +552,7 @@ class Markup implements MarkupInterface {
 	 *
 	 * @return string The children wrapper closing HTML tag.
 	 */
-	private function children_closer_tag(): string {
+	private function childrenCloserTag(): string {
 		$closer        = '';
 		$children_wrap = explode( '%child%', (string) $this->children_wrapper );
 		if ( isset( $children_wrap[1] ) ) {
@@ -311,5 +560,52 @@ class Markup implements MarkupInterface {
 		}
 		return $closer;
 	}
+
+	/**
+	 * Renders a Slot object with its content and wrapper.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param Slot $slot The Slot object to render.
+	 * @return string The rendered slot content with wrapper if applicable.
+	 */
+	private function renderSlot( Slot $slot ): string {
+		$name        = $slot->name();
+		$has_content = isset( $this->slots_content[ $name ] ) && ! empty( $this->slots_content[ $name ] );
+		$content     = '';
+
+		// Render all items in the slot if there's content
+		if ( $has_content ) {
+			foreach ( $this->slots_content[ $name ] as $item ) {
+				if ( $item instanceof Markup ) {
+					$content .= $item->render();
+				} elseif ( $item instanceof Slot ) {
+					// Render nested Slot recursively
+					$content .= $this->renderSlot( $item );
+				} elseif ( is_callable( $item ) ) {
+					ob_start();
+					call_user_func( $item );
+					$content .= ob_get_clean();
+				} elseif ( is_string( $item ) ) {
+					$content .= $item;
+				}
+			}
+		}
+
+		// Apply wrapper if slot has one
+		$wrapper = $slot->wrapper();
+		if ( ! empty( $wrapper ) ) {
+			// Check if we should preserve wrapper even if empty
+			if ( $has_content || $slot->isPreserved() ) {
+				$content = str_replace( '%slot%', $content, $wrapper );
+			} else {
+				// No content and shouldn't preserve wrapper = return empty
+				return '';
+			}
+		}
+
+		return $content;
+	}
+
 }
 
