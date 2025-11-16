@@ -149,19 +149,8 @@ class MarkupFactory {
 			$attributes_string = $matches[2];
 			$inner_html        = $matches[3];
 
-			// Parse classes
-			$classes = [];
-			if ( preg_match( '/class=["\']([^"\']+)["\']/', $attributes_string, $class_matches ) ) {
-				$classes            = array_filter( explode( ' ', $class_matches[1] ) );
-				$attributes_string  = preg_replace( '/\s*class=["\'][^"\']*["\']/', '', $attributes_string );
-			}
-
-			// Parse other attributes
-			$attributes = [];
-			preg_match_all( '/(\w+)=["\']([^"\']*)["\']/', $attributes_string, $attr_matches, PREG_SET_ORDER );
-			foreach ( $attr_matches as $match ) {
-				$attributes[ $match[1] ] = $match[2];
-			}
+			// Parse classes and attributes (optimized)
+			list( $classes, $attributes ) = self::parseAttributes( $attributes_string );
 
 			// Create wrapper
 			$wrapper = sprintf( '<%s class="%%classes%%" %%attributes%%>%%children%%</%s>', $tag, $tag );
@@ -181,19 +170,8 @@ class MarkupFactory {
 			$tag               = $matches[1];
 			$attributes_string = $matches[2];
 
-			// Parse classes
-			$classes = [];
-			if ( preg_match( '/class=["\']([^"\']+)["\']/', $attributes_string, $class_matches ) ) {
-				$classes            = array_filter( explode( ' ', $class_matches[1] ) );
-				$attributes_string  = preg_replace( '/\s*class=["\'][^"\']*["\']/', '', $attributes_string );
-			}
-
-			// Parse other attributes
-			$attributes = [];
-			preg_match_all( '/(\w+)=["\']([^"\']*)["\']/', $attributes_string, $attr_matches, PREG_SET_ORDER );
-			foreach ( $attr_matches as $match ) {
-				$attributes[ $match[1] ] = $match[2];
-			}
+			// Parse classes and attributes (optimized)
+			list( $classes, $attributes ) = self::parseAttributes( $attributes_string );
 
 			// Create self-closing wrapper
 			$wrapper = sprintf( '<%s class="%%classes%%" %%attributes%%/>', $tag );
@@ -202,6 +180,38 @@ class MarkupFactory {
 
 		// If it's just text, return as string child
 		return new Markup( '', [], [], '', [ $html ] );
+	}
+
+	/**
+	 * Parses HTML attributes string and extracts classes and other attributes.
+	 *
+	 * This is an optimized helper method that parses all attributes in a single pass.
+	 *
+	 * @since 1.3.0
+	 *
+	 * @param string $attributes_string The HTML attributes string to parse.
+	 * @return array Array containing [classes array, attributes array].
+	 */
+	private static function parseAttributes( string $attributes_string ): array {
+		$classes    = [];
+		$attributes = [];
+
+		// Single regex to match all attributes at once
+		if ( preg_match_all( '/(\w+)=["\']([^"\']*)["\']/', $attributes_string, $matches, PREG_SET_ORDER ) ) {
+			foreach ( $matches as $match ) {
+				$attr_name  = $match[1];
+				$attr_value = $match[2];
+
+				if ( 'class' === $attr_name ) {
+					// Split classes and filter empty values
+					$classes = array_values( array_filter( explode( ' ', $attr_value ), 'strlen' ) );
+				} else {
+					$attributes[ $attr_name ] = $attr_value;
+				}
+			}
+		}
+
+		return [ $classes, $attributes ];
 	}
 
 	/**
@@ -234,14 +244,9 @@ class MarkupFactory {
 				$tag = $matches[1];
 
 				// Check if there's text before this tag
-				$tag_start = strpos( $html, $matches[0], $offset );
-				if ( $tag_start > $offset ) {
-					$text = substr( $html, $offset, $tag_start - $offset );
-					$text = trim( $text );
-					if ( ! empty( $text ) ) {
-						$children[] = $text;
-					}
-				}
+				$tag_start = $offset;
+				
+				// No text before in this version since we use /A anchor
 
 				// Find the closing tag
 				$tag_pos    = $tag_start;

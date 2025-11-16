@@ -28,6 +28,7 @@ Perfect for building reusable UI components, generating dynamic HTML, or creatin
 - 🔄 **Nested Components** - Compose complex structures from simple parts
 - 🚀 **Dual Rendering** - `render()` to return string, `print()` for streaming
 - 🔁 **Conditional & Loop Helpers** - `when()` and `each()` for dynamic content
+- 🔍 **Search & Find** - Query your markup tree by tag, class, attribute, or custom logic
 - 📦 **Zero Dependencies** - Pure PHP, no external requirements
 
 ## Requirements
@@ -901,6 +902,215 @@ $markup->orderChildren(function($children) {
 });
 ```
 
+### Searching and Finding Elements (MarkupFinder)
+
+**New in v1.3.0**: Search through your Markup tree to find specific elements.
+
+The `MarkupFinder` class allows you to search for Markup elements based on various criteria, similar to DOM querying in JavaScript. This is perfect for:
+
+- Finding elements to modify programmatically
+- Testing and validation
+- Debugging complex structures
+- Dynamic content manipulation
+
+#### Basic Search
+
+```php
+use MaxPertici\Markup\Markup;
+use MaxPertici\Markup\MarkupFactory;
+use MaxPertici\Markup\Elements\HtmlTag;
+
+// Build a structure
+$page = MarkupFactory::fromEnum(HtmlTag::DIV)
+    ->addClass('page', 'container')
+    ->children(
+        MarkupFactory::fromEnum(HtmlTag::HEADER)
+            ->addClass('header')
+            ->slug('main-header'),
+        MarkupFactory::fromEnum(HtmlTag::MAIN)
+            ->addClass('content')
+            ->setAttribute('role', 'main')
+            ->children(
+                MarkupFactory::fromEnum(HtmlTag::P)->addClass('intro'),
+                MarkupFactory::fromEnum(HtmlTag::P)->addClass('highlight')
+            )
+    );
+
+// Get the finder instance
+$finder = $page->find();
+```
+
+#### Find by Class
+
+```php
+// Find all elements with a specific class
+$headers = $page->find()->findByClass('header');
+
+// Find all elements with class 'highlight'
+$highlighted = $page->find()->findByClass('highlight');
+```
+
+#### Find by Tag
+
+```php
+// Find all <div> elements
+$divs = $page->find()->findByTag('div');
+
+// Find all <p> elements
+$paragraphs = $page->find()->findByTag('p');
+```
+
+#### Find by Slug
+
+```php
+// Find element by slug identifier
+$header = $page->find()->findBySlug('main-header');
+
+if (!empty($header)) {
+    // Modify the found element
+    $header[0]->addClass('sticky');
+}
+```
+
+#### Find by Attribute
+
+```php
+// Find all elements with a specific attribute
+$elementsWithRole = $page->find()->findByAttribute('role');
+
+// Find elements with specific attribute value
+$mainElements = $page->find()->findByAttribute('role', 'main');
+```
+
+#### Find by Multiple Classes
+
+```php
+// Find elements that have ALL specified classes
+$specialSections = $page->find()->findByClasses(['section', 'featured']);
+```
+
+#### Custom Search with Callback
+
+```php
+// Find elements using a custom callback
+$results = $page->find()->search(function($markup) {
+    // Find elements with class 'active' AND attribute 'data-id'
+    return $markup->hasClass('active') && $markup->hasAttribute('data-id');
+});
+
+// Find all buttons
+$buttons = $page->find()->search(function($markup) {
+    // Check if wrapper contains <button tag
+    $reflection = new \ReflectionClass($markup);
+    $property = $reflection->getProperty('wrapper');
+    $property->setAccessible(true);
+    $wrapper = $property->getValue($markup);
+    
+    return preg_match('/^<button/', $wrapper);
+});
+```
+
+#### Find First Match
+
+```php
+// Find only the first element that matches
+$firstNav = $page->find()->findFirst(function($markup) {
+    return $markup->hasClass('nav');
+});
+
+if (null !== $firstNav) {
+    // Found! Do something with it
+    $firstNav->addClass('primary-nav');
+}
+```
+
+#### Count Matching Elements
+
+```php
+// Count elements that match a condition
+$count = $page->find()->count(function($markup) {
+    return $markup->hasClass('card');
+});
+
+echo "Found {$count} cards";
+```
+
+#### Get All Elements
+
+```php
+// Get all Markup instances in the tree (flattened)
+$allElements = $page->find()->all();
+
+echo "Total elements: " . count($allElements);
+```
+
+#### Shallow vs Deep Search
+
+By default, searches are recursive (deep). You can limit searches to direct children only:
+
+```php
+// Deep search (default) - searches entire tree
+$sections = $page->find()->findByTag('section', true);
+
+// Shallow search - only direct children
+$sections = $page->find()->findByTag('section', false);
+```
+
+#### Practical Example: Modifying Found Elements
+
+```php
+// Build a navigation menu
+$nav = MarkupFactory::fromEnum(HtmlTag::NAV)
+    ->addClass('menu')
+    ->children(
+        MarkupFactory::fromEnum(HtmlTag::UL)->children(
+            MarkupFactory::fromEnum(HtmlTag::LI)->children('Home'),
+            MarkupFactory::fromEnum(HtmlTag::LI)->children('About'),
+            MarkupFactory::fromEnum(HtmlTag::LI)->children('Contact')
+                ->addClass('active')
+        )
+    );
+
+// Find and modify the active menu item
+$activeItems = $nav->find()->findByClass('active');
+
+foreach ($activeItems as $item) {
+    $item->setAttribute('aria-current', 'page');
+}
+
+// Find all list items and add a class
+$listItems = $nav->find()->findByTag('li');
+
+foreach ($listItems as $item) {
+    $item->addClass('menu-item');
+}
+
+echo $nav->render();
+```
+
+#### MarkupFinder API
+
+```php
+// All available methods
+$finder = $markup->find();
+
+$finder->findByClass(string $class, bool $deep = true): array
+$finder->findByTag(string $tag, bool $deep = true): array
+$finder->findBySlug(string $slug, bool $deep = true): array
+$finder->findByAttribute(string $name, ?string $value = null, bool $deep = true): array
+$finder->findByClasses(array $classes, bool $deep = true): array
+$finder->search(callable $callback, bool $deep = true): array
+$finder->findFirst(callable $callback, bool $deep = true): ?Markup
+$finder->count(callable $callback, bool $deep = true): int
+$finder->all(bool $deep = true): array
+```
+
+**Search Performance Tips:**
+- Use shallow search (`$deep = false`) when you know elements are in direct children
+- Use `findFirst()` when you only need one element
+- Cache search results if you need to use them multiple times
+- Be specific with your callbacks to avoid unnecessary traversal
+
 ### Children Wrapper
 
 Wrap each child individually using the `%child%` placeholder:
@@ -1295,6 +1505,14 @@ when(bool $condition, callable $callback): self
 each(array $items, callable $callback): self
 ```
 
+#### Search & Find Methods
+
+```php
+find(): MarkupFinder
+```
+
+Creates a `MarkupFinder` instance for searching within the markup tree. See [Searching and Finding Elements](#searching-and-finding-elements-markupfinder) for detailed usage.
+
 #### Rendering Methods
 
 ```php
@@ -1329,6 +1547,71 @@ preserve(bool $preserve = true): self
 isPreserved(): bool
 toArray(): array
 ```
+
+### MarkupFinder Class
+
+**New in v1.3.0**: Search and query utility for finding Markup elements in a tree.
+
+#### Constructor
+
+```php
+public function __construct(Markup $markup)
+```
+
+**Parameters:**
+- `$markup` - The root Markup instance to search in
+
+**Note:** Usually accessed via `$markup->find()` rather than direct instantiation.
+
+#### Search Methods
+
+```php
+findByClass(string $class, bool $deep = true): array
+```
+Finds all Markup elements that have a specific CSS class.
+
+```php
+findByTag(string $tag, bool $deep = true): array
+```
+Finds all Markup elements with a specific HTML tag (e.g., 'div', 'p', 'span').
+
+```php
+findBySlug(string $slug, bool $deep = true): array
+```
+Finds all Markup elements with a specific slug identifier.
+
+```php
+findByAttribute(string $name, ?string $value = null, bool $deep = true): array
+```
+Finds all Markup elements with a specific attribute. If `$value` is provided, matches only elements where the attribute has that exact value.
+
+```php
+findByClasses(array $classes, bool $deep = true): array
+```
+Finds all Markup elements that have ALL of the specified classes (AND logic).
+
+```php
+search(callable $callback, bool $deep = true): array
+```
+Finds all Markup elements that match a custom callback function. The callback receives a Markup instance and should return `true` for matches.
+
+```php
+findFirst(callable $callback, bool $deep = true): ?Markup
+```
+Finds the first Markup element that matches a callback. Returns `null` if no match found.
+
+```php
+count(callable $callback, bool $deep = true): int
+```
+Counts how many Markup elements match a callback function.
+
+```php
+all(bool $deep = true): array
+```
+Returns all Markup instances in the tree as a flattened array.
+
+**Parameters common to all methods:**
+- `$deep` - When `true` (default), searches recursively through the entire tree. When `false`, only searches direct children.
 
 ### MarkupInterface
 

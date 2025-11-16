@@ -8,6 +8,7 @@
 namespace MaxPertici\Markup;
 
 use MaxPertici\Markup\Utils\MarkupDataTreeWalker;
+use MaxPertici\Markup\Utils\MarkupFinder;
 
 /**
  * Class Markup
@@ -161,6 +162,19 @@ class Markup implements MarkupInterface {
 
 		$this->slug = $slug;
 		return $this;
+	}
+
+	/**
+	 * Gets the wrapper template for this markup instance.
+	 *
+	 * This method is useful for introspection and search operations.
+	 *
+	 * @since 1.3.0
+	 *
+	 * @return string The wrapper HTML template.
+	 */
+	public function getWrapper(): string {
+		return $this->wrapper;
 	}
 
 	/**
@@ -684,6 +698,37 @@ class Markup implements MarkupInterface {
 	}
 
 	/**
+	 * Creates a MarkupFinder instance for searching within this markup tree.
+	 *
+	 * The finder allows you to search for Markup elements based on various criteria
+	 * such as tags, classes, attributes, slugs, or custom callbacks.
+	 *
+	 * Example usage:
+	 * ```php
+	 * // Find all elements with a specific class
+	 * $elements = $markup->find()->findByClass('my-class');
+	 *
+	 * // Find elements by tag
+	 * $divs = $markup->find()->findByTag('div');
+	 *
+	 * // Find elements by slug
+	 * $element = $markup->find()->findBySlug('header-navigation');
+	 *
+	 * // Custom search
+	 * $elements = $markup->find()->search(function($markup) {
+	 *     return $markup->hasClass('active') && $markup->hasAttribute('data-id');
+	 * });
+	 * ```
+	 *
+	 * @since 1.3.0
+	 *
+	 * @return MarkupFinder The finder instance for method chaining.
+	 */
+	public function find(): MarkupFinder {
+		return new MarkupFinder( $this );
+	}
+
+	/**
 	 * Renders and returns the generated markup as a string.
 	 *
 	 * @since 1.0.0
@@ -713,59 +758,73 @@ class Markup implements MarkupInterface {
 	 * Walks through the children tree and generates or outputs the markup
 	 * based on the current streaming mode.
 	 *
+	 * Optimized to directly iterate children instead of using TreeWalker
+	 * for better performance.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @param string $path Optional. Current path in the data tree. Default empty string.
 	 * @return string The generated markup string.
 	 */
 	private function execute( string $path = '' ): string {
-
 		self::$path   = $path;
 		$this->markup = '';
 		$this->output( $this->wrapperOpenerTag() );
-		$that = $this;
 
-		$walker = new MarkupDataTreeWalker(
-			function ( $value, $path ) use ( $that ): void {
-				self::$path = $path;
+		// Directly iterate children instead of using TreeWalker (much faster)
+		$this->renderChildren( $this->children, $path );
 
-				// If it's a MarkupSlot object, render its content
-				if ( $value instanceof MarkupSlot ) {
-					$that->output( $that->renderSlot( $value ) );
-					return;
-				}
+		$this->output( $this->containerCloserTag() );
+		return $this->markup;
+	}
 
-			$that->output( $that->childrenOpenerTag() );
+	/**
+	 * Renders children elements efficiently.
+	 *
+	 * This method replaces the TreeWalker for better performance.
+	 *
+	 * @since 1.3.0
+	 *
+	 * @param array  $children The children to render.
+	 * @param string $path     Current path in the tree.
+	 * @return void
+	 */
+	private function renderChildren( array $children, string $path = '' ): void {
+		foreach ( $children as $key => $value ) {
+			$current_path = $path ? $path . '_' . $key : (string) $key;
+			self::$path   = $current_path;
+
+			// If it's a MarkupSlot object, render its content
+			if ( $value instanceof MarkupSlot ) {
+				$this->output( $this->renderSlot( $value ) );
+				continue;
+			}
+
+			$this->output( $this->childrenOpenerTag() );
 
 			if ( $value instanceof Markup ) {
-				// Use render() or print() to respect BlockMarkup's overrides
-				if ( $that->streaming ) {
+				// Use render() or print() to respect subclass overrides
+				if ( $this->streaming ) {
 					$value->print();
 				} else {
-					$that->output( $value->render() );
+					$this->output( $value->render() );
 				}
 			} elseif ( is_string( $value ) ) {
 				// Check strings first to avoid treating function names as callables
-				$that->output( $value );
+				$this->output( $value );
 			} elseif ( is_callable( $value ) ) {
 				// Support for callbacks (closures, array callables, etc.)
-				if ( $that->streaming ) {
+				if ( $this->streaming ) {
 					call_user_func( $value );
 				} else {
 					ob_start();
 					call_user_func( $value );
-					$that->output( ob_get_clean() );
+					$this->output( ob_get_clean() );
 				}
 			}
 
-			$that->output( $that->childrenCloserTag() );
-			}
-		);
-
-		$walker->walk( $this->children, self::$path );
-
-		$this->output( $this->containerCloserTag() );
-		return $this->markup;
+			$this->output( $this->childrenCloserTag() );
+		}
 	}
 
 	/**
@@ -799,14 +858,17 @@ class Markup implements MarkupInterface {
 
 		$opener = str_replace( '%classes%', implode( ' ', $this->wrapper_class ), $opener );
 
-		$attributes = [];
-		foreach ( $this->wrapper_attributes as $attribute => $value ) {
-			$attributes[] = $attribute . '="' . $value . '"';
+		// Build attributes string
+		if ( ! empty( $this->wrapper_attributes ) ) {
+			$attributes = [];
+			foreach ( $this->wrapper_attributes as $attribute => $value ) {
+				$attributes[] = $attribute . '="' . $value . '"';
+			}
+			$attributes_str = ' ' . implode( ' ', $attributes );
+		} else {
+			$attributes_str = '';
 		}
-		$attributes_str = implode( ' ', $attributes );
-		// Only add space if there are attributes
-		$attributes_str = ! empty( $attributes_str ) ? ' ' . $attributes_str : '';
-		$opener         = str_replace( '%attributes%', $attributes_str, $opener );
+		$opener = str_replace( '%attributes%', $attributes_str, $opener );
 
 		// Clean up empty attributes (e.g., class="")
 		$opener = preg_replace( '/\s+class=""/', '', $opener );
