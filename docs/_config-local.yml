@@ -1,0 +1,32 @@
+# Local development configuration
+# This config is used by start-docs.sh to avoid SSL issues with remote_theme
+
+# GitHub Pages Configuration
+title: Markup
+description: A PHP library for building and manipulating HTML elements programmatically
+
+# Use local theme instead of remote_theme for development
+theme: just-the-docs
+color_scheme: light
+show_downloads: true
+
+# Just the Docs Configuration
+search_enabled: true
+aux_links:
+  "View on GitHub":
+    - "//github.com/maxpertici/markup"
+
+# GitHub repository
+repository: maxpertici/markup
+
+# Navigation
+nav_links:
+  - title: Home
+    url: /
+
+# Markdown settings
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+

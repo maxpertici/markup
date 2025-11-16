@@ -5,3 +5,10 @@ composer.lock
 *.swo
 *~
 
+# Jekyll
+docs/_site/
+docs/.jekyll-cache/
+docs/.jekyll-metadata
+docs/vendor/
+docs/.bundle/
+

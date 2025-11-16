@@ -1,9 +1,11 @@
 source "https://rubygems.org"
 
+# Ensure bundler version compatible with Ruby 3.4+
+gem "bundler", "~> 2.5"
 gem "github-pages", group: :jekyll_plugins
 
-# Just the Docs theme will be loaded via remote_theme in _config.yml
-# No need to add it here when using GitHub Pages
+# Use local theme for development to avoid SSL issues
+gem "just-the-docs", "~> 0.10"
 
 # If you have any other plugins, install them here:
 # group :jekyll_plugins do
