@@ -20,31 +20,31 @@ namespace MaxPertici\Markup;
 class MarkupFactory {
 
 	/**
-	 * Creates a Markup instance from an enum implementing MarkupElementInterface.
+	 * Creates a Markup instance from a predefined element configuration.
 	 *
 	 * This method allows you to create Markup from predefined element configurations.
-	 * You can use built-in enums like HtmlTag, or create your own custom enums.
+	 * You can use built-in elements like HtmlTag, or create your own custom elements.
 	 *
 	 * Example usage:
 	 * ```php
 	 * use MaxPertici\Markup\Elements\HtmlTag;
 	 *
-	 * $div = MarkupFactory::fromEnum(HtmlTag::DIV, [$child1, $child2]);
-	 * $section = MarkupFactory::fromEnum(HtmlTag::SECTION, [$content], ['main-section']);
+	 * $div = MarkupFactory::fromElement(HtmlTag::DIV, [$child1, $child2]);
+	 * $section = MarkupFactory::fromElement(HtmlTag::SECTION, [$content], ['main-section']);
 	 * 
-	 * // With custom enum
-	 * $card = MarkupFactory::fromEnum(MyComponent::CARD, [$header, $body]);
+	 * // With custom element
+	 * $card = MarkupFactory::fromElement(MyComponent::CARD, [$header, $body]);
 	 * ```
 	 *
 	 * @since 1.2.0
 	 *
-	 * @param MarkupElementInterface $element    The element enum to use.
+	 * @param MarkupElementInterface $element    The element configuration to use.
 	 * @param array                  $children   Optional. Children elements. Default empty array.
 	 * @param array                  $classes    Optional. Additional CSS classes. Default empty array.
 	 * @param array                  $attributes Optional. Additional HTML attributes. Default empty array.
 	 * @return Markup A new Markup instance.
 	 */
-	public static function fromEnum(
+	public static function fromElement(
 		MarkupElementInterface $element,
 		array $children = [],
 		array $classes = [],

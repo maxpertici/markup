@@ -321,17 +321,17 @@ Instead of manually defining wrapper templates, classes, and attributes every ti
 - ✅ **Extensible** - Create your own enum libraries
 - ✅ **Shareable** - Package and distribute via Composer
 
-#### Using `MarkupFactory::fromEnum()`
+#### Using `MarkupFactory::fromElement()`
 
-The `fromEnum()` method creates Markup instances from any enum implementing `MarkupElementInterface`:
+The `fromElement()` method creates Markup instances from any element implementing `MarkupElementInterface`:
 
 ```php
 use MaxPertici\Markup\MarkupFactory;
 use MaxPertici\Markup\Elements\HtmlTag;
 
-// Create from built-in HtmlTag enum
-$div = MarkupFactory::fromEnum(
-    HtmlTag::DIV,                          // The enum case
+// Create from built-in HtmlTag element
+$div = MarkupFactory::fromElement(
+    HtmlTag::DIV,                          // The element
     ['Hello World'],                        // Children (array)
     ['container', 'text-center'],          // Additional CSS classes
     ['id' => 'main', 'data-role' => 'app'] // Additional attributes
@@ -343,8 +343,8 @@ echo $div->render();
 
 **Signature:**
 ```php
-MarkupFactory::fromEnum(
-    MarkupElementInterface $element,  // The enum case
+MarkupFactory::fromElement(
+    MarkupElementInterface $element,  // The element configuration
     array $children = [],              // Children to add
     array $classes = [],               // Additional CSS classes
     array $attributes = []             // Additional HTML attributes
@@ -386,9 +386,9 @@ HtmlTag::LABEL
 HtmlTag::INPUT
 
 // Usage examples
-$section = MarkupFactory::fromEnum(HtmlTag::SECTION, ['Content'], ['main-section']);
-$button = MarkupFactory::fromEnum(HtmlTag::BUTTON, ['Click me'], ['btn', 'btn-primary']);
-$list = MarkupFactory::fromEnum(HtmlTag::UL, ['Item 1', 'Item 2', 'Item 3'], ['menu']);
+$section = MarkupFactory::fromElement(HtmlTag::SECTION, ['Content'], ['main-section']);
+$button = MarkupFactory::fromElement(HtmlTag::BUTTON, ['Click me'], ['btn', 'btn-primary']);
+$list = MarkupFactory::fromElement(HtmlTag::UL, ['Item 1', 'Item 2', 'Item 3'], ['menu']);
 // UL/OL automatically wrap children in <li> tags!
 
 echo $list->render();
@@ -467,10 +467,10 @@ enum BootstrapComponent: string implements MarkupElementInterface {
 }
 
 // Usage
-$card = MarkupFactory::fromEnum(BootstrapComponent::CARD, [
-    MarkupFactory::fromEnum(BootstrapComponent::CARD_HEADER, ['Card Title']),
-    MarkupFactory::fromEnum(BootstrapComponent::CARD_BODY, ['Card content']),
-    MarkupFactory::fromEnum(BootstrapComponent::CARD_FOOTER, ['Footer text']),
+$card = MarkupFactory::fromElement(BootstrapComponent::CARD, [
+    MarkupFactory::fromElement(BootstrapComponent::CARD_HEADER, ['Card Title']),
+    MarkupFactory::fromElement(BootstrapComponent::CARD_BODY, ['Card content']),
+    MarkupFactory::fromElement(BootstrapComponent::CARD_FOOTER, ['Footer text']),
 ]);
 
 echo $card->render();
@@ -548,16 +548,16 @@ enum TailwindComponent implements MarkupElementInterface {
 }
 
 // Build a page
-$page = MarkupFactory::fromEnum(TailwindComponent::CONTAINER, [
-    MarkupFactory::fromEnum(TailwindComponent::HERO_SECTION, [
+$page = MarkupFactory::fromElement(TailwindComponent::CONTAINER, [
+    MarkupFactory::fromElement(TailwindComponent::HERO_SECTION, [
         '<h1 class="text-5xl font-bold mb-4">Welcome!</h1>',
         '<p class="text-xl mb-8">Start building amazing things</p>',
-        MarkupFactory::fromEnum(TailwindComponent::BUTTON_PRIMARY, ['Get Started']),
+        MarkupFactory::fromElement(TailwindComponent::BUTTON_PRIMARY, ['Get Started']),
     ]),
-    MarkupFactory::fromEnum(TailwindComponent::CARD, [
+    MarkupFactory::fromElement(TailwindComponent::CARD, [
         '<h2 class="text-2xl font-bold mb-4">Features</h2>',
         '<p>Discover what makes us unique...</p>',
-        MarkupFactory::fromEnum(TailwindComponent::BADGE, ['New']),
+        MarkupFactory::fromElement(TailwindComponent::BADGE, ['New']),
     ]),
 ]);
 
@@ -614,7 +614,7 @@ enum WpAdminComponent implements MarkupElementInterface {
 }
 
 // Usage in WordPress
-$notice = MarkupFactory::fromEnum(
+$notice = MarkupFactory::fromElement(
     WpAdminComponent::NOTICE_SUCCESS,
     ['Settings saved successfully!'],
     ['is-dismissible']
@@ -629,19 +629,19 @@ echo $notice->render();
 1. **IDE Autocompletion**: Your IDE knows all available components
 ```php
 // Type "BootstrapComponent::" and see all options!
-MarkupFactory::fromEnum(BootstrapComponent::CARD, ...);
+MarkupFactory::fromElement(BootstrapComponent::CARD, ...);
 ```
 
 2. **Type Safety**: Catch errors at compile time
 ```php
 // This will error if CARDS doesn't exist (typo)
-MarkupFactory::fromEnum(BootstrapComponent::CARDS, ...); // ❌ Error
+MarkupFactory::fromElement(BootstrapComponent::CARDS, ...); // ❌ Error
 ```
 
 3. **Centralized Configuration**: Change once, apply everywhere
 ```php
 // Update BUTTON_PRIMARY classes in one place
-// All buttons using this enum case are updated automatically
+// All buttons using this element are updated automatically
 ```
 
 4. **Shareable Libraries**: Package your enums
@@ -650,7 +650,7 @@ MarkupFactory::fromEnum(BootstrapComponent::CARDS, ...); // ❌ Error
 composer require my-company/bootstrap-components
 
 use MyCompany\BootstrapComponents\Component;
-$card = MarkupFactory::fromEnum(Component::CARD, ...);
+$card = MarkupFactory::fromElement(Component::CARD, ...);
 ```
 
 5. **Framework-Agnostic**: Works with any CSS framework
@@ -672,11 +672,11 @@ public function wrapper(): string
 
 public function classes(): array
     // Returns array of CSS class names for this element
-    // These are merged with additional classes passed to fromEnum()
+    // These are merged with additional classes passed to fromElement()
 
 public function attributes(): array
     // Returns array of HTML attributes (key => value)
-    // These are merged with additional attributes passed to fromEnum()
+    // These are merged with additional attributes passed to fromElement()
 
 public function childrenWrapper(): string
     // Optional wrapper for each child element
@@ -921,18 +921,18 @@ use MaxPertici\Markup\MarkupFactory;
 use MaxPertici\Markup\Elements\HtmlTag;
 
 // Build a structure
-$page = MarkupFactory::fromEnum(HtmlTag::DIV)
+$page = MarkupFactory::fromElement(HtmlTag::DIV)
     ->addClass('page', 'container')
     ->children(
-        MarkupFactory::fromEnum(HtmlTag::HEADER)
+        MarkupFactory::fromElement(HtmlTag::HEADER)
             ->addClass('header')
             ->slug('main-header'),
-        MarkupFactory::fromEnum(HtmlTag::MAIN)
+        MarkupFactory::fromElement(HtmlTag::MAIN)
             ->addClass('content')
             ->setAttribute('role', 'main')
             ->children(
-                MarkupFactory::fromEnum(HtmlTag::P)->addClass('intro'),
-                MarkupFactory::fromEnum(HtmlTag::P)->addClass('highlight')
+                MarkupFactory::fromElement(HtmlTag::P)->addClass('intro'),
+                MarkupFactory::fromElement(HtmlTag::P)->addClass('highlight')
             )
     );
 
@@ -1060,13 +1060,13 @@ $sections = $page->find()->findByTag('section', false);
 
 ```php
 // Build a navigation menu
-$nav = MarkupFactory::fromEnum(HtmlTag::NAV)
+$nav = MarkupFactory::fromElement(HtmlTag::NAV)
     ->addClass('menu')
     ->children(
-        MarkupFactory::fromEnum(HtmlTag::UL)->children(
-            MarkupFactory::fromEnum(HtmlTag::LI)->children('Home'),
-            MarkupFactory::fromEnum(HtmlTag::LI)->children('About'),
-            MarkupFactory::fromEnum(HtmlTag::LI)->children('Contact')
+        MarkupFactory::fromElement(HtmlTag::UL)->children(
+            MarkupFactory::fromElement(HtmlTag::LI)->children('Home'),
+            MarkupFactory::fromElement(HtmlTag::LI)->children('About'),
+            MarkupFactory::fromElement(HtmlTag::LI)->children('Contact')
                 ->addClass('active')
         )
     );
@@ -1436,7 +1436,7 @@ MarkupFactory::fromString(
 
 MarkupFactory::fromHtml(string $html, int $max_depth = PHP_INT_MAX): Markup
 
-MarkupFactory::fromEnum(
+MarkupFactory::fromElement(
     MarkupElementInterface $element,
     array $children = [],
     array $classes = [],
@@ -1448,7 +1448,7 @@ MarkupFactory::fromEnum(
 
 **`fromHtml()`** - Recursively parses HTML and creates a complete Markup tree. Optional `$max_depth` parameter limits parsing depth.
 
-**`fromEnum()`** - Creates a Markup instance from an enum implementing `MarkupElementInterface`. The enum defines the wrapper template, default classes, and attributes. Additional classes and attributes are merged with the enum's defaults.
+**`fromElement()`** - Creates a Markup instance from a predefined element configuration (implementing `MarkupElementInterface`). The element defines the wrapper template, default classes, and attributes. Additional classes and attributes are merged with the element's defaults.
 
 #### Metadata Methods
 
