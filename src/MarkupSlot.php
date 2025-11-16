@@ -1,6 +1,6 @@
 <?php
 /**
- * Slot class for declaring named content placeholders.
+ * MarkupSlot class for declaring named content placeholders.
  *
  * @package MaxPertici\Markup
  */
@@ -8,14 +8,14 @@
 namespace MaxPertici\Markup;
 
 /**
- * Class Slot
+ * Class MarkupSlot
  *
  * Represents a slot declaration that can be added as a child to Markup.
- * The Markup class will automatically detect and register Slot objects.
+ * The Markup class will automatically detect and register MarkupSlot objects.
  *
  * @since 1.0.0
  */
-class Slot {
+class MarkupSlot {
 
 	/**
 	 * The name/identifier of the slot.

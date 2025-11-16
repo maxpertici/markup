@@ -49,14 +49,83 @@ The package uses PSR-4 autoloading:
 require 'vendor/autoload.php';
 
 use MaxPertici\Markup\Markup;
-use MaxPertici\Markup\Slot;
+use MaxPertici\Markup\MarkupSlot;
+use MaxPertici\Markup\MarkupFactory;
 ```
 
 ## Basic Usage
 
+### Factory Methods (Quick Creation)
+
+**New in v1.1.0**: Create Markup instances quickly using the `MarkupFactory` class.
+
+#### `MarkupFactory::fromString()` - Simple Element Creation
+
+Create a wrapper element with content, classes, and attributes in one line:
+
+```php
+use MaxPertici\Markup\MarkupFactory;
+
+// Create a simple div
+$div = MarkupFactory::fromString(
+    'div',                                    // tag name
+    'Hello World!',                           // content (string only)
+    ['container', 'text-center'],             // CSS classes
+    ['id' => 'main', 'data-test' => 'value'] // HTML attributes
+);
+
+echo $div->render();
+// Output: <div class="container text-center" id="main" data-test="value">Hello World!</div>
+
+// Still fully chainable
+$paragraph = MarkupFactory::fromString('p', 'Initial content', ['paragraph'])
+    ->addClass('text-bold')
+    ->setAttribute('role', 'note');
+```
+
+**Use case**: Perfect for quick element creation when you need a simple wrapper with a single text content.
+
+#### `MarkupFactory::fromHtml()` - Parse HTML Tree (Recursive)
+
+Parse existing HTML and convert it into a complete Markup structure:
+
+```php
+// Simple HTML parsing
+$html = '<div class="card" id="card-1">Card content</div>';
+$markup = MarkupFactory::fromHtml($html);
+
+echo $markup->render();
+// Output: <div class="card" id="card-1">Card content</div>
+
+// Nested HTML - fully recursive
+$complexHtml = '<div class="card">
+    <h2 class="title">Card Title</h2>
+    <p class="content">This is the card content with <strong>bold text</strong>.</p>
+</div>';
+
+$nested = MarkupFactory::fromHtml($complexHtml);
+echo $nested->render();
+// Preserves entire structure as nested Markup instances
+
+// Still manipulable after parsing
+$parsed = MarkupFactory::fromHtml('<div class="box">Content</div>');
+$parsed->addClass('new-class')
+       ->setAttribute('data-dynamic', 'true')
+       ->children(' - Added content');
+
+echo $parsed->render();
+// Output: <div class="box new-class" data-dynamic="true">Content - Added content</div>
+```
+
+**Use case**: Parse existing HTML templates, convert HTML strings to Markup objects, or migrate from string-based HTML generation.
+
+**Key differences:**
+- `MarkupFactory::fromString()`: Creates simple wrapper (first level only) with single string content
+- `MarkupFactory::fromHtml()`: Recursively parses entire HTML tree, preserving all nested structure
+
 ### Simple Example
 
-Create a basic HTML element:
+Create a basic HTML element using the constructor:
 
 ```php
 use MaxPertici\Markup\Markup;
@@ -152,25 +221,529 @@ $link->removeAttribute('target');
 
 ## Advanced Features
 
-### Slot System
+### Creating Markup from Strings and HTML
+
+The library provides two factory methods to create Markup instances from strings or HTML:
+
+#### `fromString()` - Simple Wrapper (First Level Only)
+
+Creates a simple wrapper with a tag, classes, attributes, and string content. The content is **not parsed** and remains as a single string child.
+
+```php
+$div = Markup::fromString(
+    tag: 'div',
+    content: 'This is <strong>HTML</strong> that will NOT be parsed',
+    classes: ['container', 'text-center'],
+    attributes: ['id' => 'main', 'data-type' => 'simple']
+);
+
+echo $div->render();
+// Output: <div class="container text-center" id="main" data-type="simple">This is <strong>HTML</strong> that will NOT be parsed</div>
+
+// You can still chain methods
+$div->addClass('bg-light')
+    ->setAttribute('data-enhanced', 'true');
+```
+
+**Use `fromString()` when:**
+- You need a simple wrapper around string content
+- Performance is critical (3x faster than `fromHtml()`)
+- You don't need to parse or manipulate the inner HTML structure
+
+#### `fromHtml()` - Recursive Parsing
+
+Parses an HTML string and creates a complete Markup tree with nested Markup instances for each HTML element.
+
+```php
+$html = '
+<div class="card" id="user-card" data-user-id="123">
+    <div class="card-header">
+        <h2 class="title">User Profile</h2>
+        <span class="badge">Premium</span>
+    </div>
+    <div class="card-body">
+        <p>Welcome back, <strong>John Doe</strong>!</p>
+        <a href="/profile" class="btn btn-primary">View Profile</a>
+    </div>
+</div>
+';
+
+$parsed = Markup::fromHtml($html);
+
+// The entire structure is now a Markup tree
+// You can manipulate any part of it
+$parsed->addClass('shadow-lg')
+       ->setAttribute('data-enhanced', 'true');
+
+echo $parsed->render();
+```
+
+**Use `fromHtml()` when:**
+- You need to parse existing HTML into a Markup structure
+- You want to manipulate complex HTML programmatically
+- You need access to nested elements as Markup instances
+- Converting legacy HTML to Markup components
+
+#### Combining Both Approaches
+
+```php
+$container = new Markup('<div class="container">%children%</div>');
+
+// Parse complex HTML
+$header = Markup::fromHtml('<header><h1>Title</h1><nav>...</nav></header>');
+
+// Create simple wrapper with string content
+$footer = Markup::fromString('footer', '© 2024 My Site', ['site-footer']);
+
+$container->children($header, $footer);
+```
+
+#### Important Notes
+
+- `fromString()` is approximately **3x faster** than `fromHtml()`
+- `fromHtml()` uses PHP's DOMDocument, which may:
+  - Remove some whitespace between elements
+  - Convert self-closing tags (e.g., `<img />` becomes `<img></img>`)
+  - Add missing closing tags for malformed HTML
+- Both methods return chainable Markup instances
+
+### MarkupFactory and Enums
+
+**New in v1.2.0**: Create reusable component definitions using PHP 8.1 enums.
+
+#### The Power of Enums
+
+Instead of manually defining wrapper templates, classes, and attributes every time, you can create enum-based component libraries that are:
+
+- ✅ **Type-safe** - Full IDE autocompletion and type checking
+- ✅ **Reusable** - Define once, use everywhere
+- ✅ **Extensible** - Create your own enum libraries
+- ✅ **Shareable** - Package and distribute via Composer
+
+#### Using `MarkupFactory::fromEnum()`
+
+The `fromEnum()` method creates Markup instances from any enum implementing `MarkupElementInterface`:
+
+```php
+use MaxPertici\Markup\MarkupFactory;
+use MaxPertici\Markup\Elements\HtmlTag;
+
+// Create from built-in HtmlTag enum
+$div = MarkupFactory::fromEnum(
+    HtmlTag::DIV,                          // The enum case
+    ['Hello World'],                        // Children (array)
+    ['container', 'text-center'],          // Additional CSS classes
+    ['id' => 'main', 'data-role' => 'app'] // Additional attributes
+);
+
+echo $div->render();
+// Output: <div class="container text-center" id="main" data-role="app">Hello World</div>
+```
+
+**Signature:**
+```php
+MarkupFactory::fromEnum(
+    MarkupElementInterface $element,  // The enum case
+    array $children = [],              // Children to add
+    array $classes = [],               // Additional CSS classes
+    array $attributes = []             // Additional HTML attributes
+): Markup
+```
+
+#### Built-in HtmlTag Enum
+
+The package includes a `HtmlTag` enum for common HTML elements:
+
+```php
+use MaxPertici\Markup\Elements\HtmlTag;
+use MaxPertici\Markup\MarkupFactory;
+
+// Available tags
+HtmlTag::DIV
+HtmlTag::SPAN
+HtmlTag::P
+HtmlTag::SECTION
+HtmlTag::ARTICLE
+HtmlTag::HEADER
+HtmlTag::FOOTER
+HtmlTag::MAIN
+HtmlTag::ASIDE
+HtmlTag::NAV
+HtmlTag::UL
+HtmlTag::OL
+HtmlTag::LI
+HtmlTag::H1
+HtmlTag::H2
+HtmlTag::H3
+HtmlTag::H4
+HtmlTag::H5
+HtmlTag::H6
+HtmlTag::BUTTON
+HtmlTag::A
+HtmlTag::FORM
+HtmlTag::LABEL
+HtmlTag::INPUT
+
+// Usage examples
+$section = MarkupFactory::fromEnum(HtmlTag::SECTION, ['Content'], ['main-section']);
+$button = MarkupFactory::fromEnum(HtmlTag::BUTTON, ['Click me'], ['btn', 'btn-primary']);
+$list = MarkupFactory::fromEnum(HtmlTag::UL, ['Item 1', 'Item 2', 'Item 3'], ['menu']);
+// UL/OL automatically wrap children in <li> tags!
+
+echo $list->render();
+// Output: <ul class="menu"><li>Item 1</li><li>Item 2</li><li>Item 3</li></ul>
+```
+
+#### Creating Custom Enums
+
+Create your own component library by implementing `MarkupElementInterface`:
+
+```php
+use MaxPertici\Markup\MarkupElementInterface;
+
+/**
+ * Bootstrap components enum
+ */
+enum BootstrapComponent: string implements MarkupElementInterface {
+    
+    case CARD            = 'card';
+    case CARD_HEADER     = 'card-header';
+    case CARD_BODY       = 'card-body';
+    case CARD_FOOTER     = 'card-footer';
+    case ALERT_SUCCESS   = 'alert-success';
+    case ALERT_WARNING   = 'alert-warning';
+    case ALERT_DANGER    = 'alert-danger';
+    case BUTTON_PRIMARY  = 'btn-primary';
+    case BUTTON_SECONDARY = 'btn-secondary';
+
+    /**
+     * Gets the HTML wrapper template.
+     */
+    public function wrapper(): string {
+        return match ($this) {
+            self::CARD, self::CARD_HEADER, self::CARD_BODY, self::CARD_FOOTER
+                => '<div class="%classes%" %attributes%>%children%</div>',
+            self::ALERT_SUCCESS, self::ALERT_WARNING, self::ALERT_DANGER
+                => '<div class="alert %classes%" %attributes% role="alert">%children%</div>',
+            self::BUTTON_PRIMARY, self::BUTTON_SECONDARY
+                => '<button class="btn %classes%" %attributes%>%children%</button>',
+        };
+    }
+
+    /**
+     * Gets the CSS classes for this element.
+     */
+    public function classes(): array {
+        return match ($this) {
+            self::CARD            => ['card'],
+            self::CARD_HEADER     => ['card-header'],
+            self::CARD_BODY       => ['card-body'],
+            self::CARD_FOOTER     => ['card-footer'],
+            self::ALERT_SUCCESS   => ['alert-success'],
+            self::ALERT_WARNING   => ['alert-warning'],
+            self::ALERT_DANGER    => ['alert-danger'],
+            self::BUTTON_PRIMARY  => ['btn-primary'],
+            self::BUTTON_SECONDARY => ['btn-secondary'],
+        };
+    }
+
+    /**
+     * Gets the HTML attributes for this element.
+     */
+    public function attributes(): array {
+        return match ($this) {
+            self::BUTTON_PRIMARY, self::BUTTON_SECONDARY => ['type' => 'button'],
+            default => [],
+        };
+    }
+
+    /**
+     * Gets the children wrapper template (optional).
+     */
+    public function childrenWrapper(): string {
+        return ''; // No special wrapper for children
+    }
+}
+
+// Usage
+$card = MarkupFactory::fromEnum(BootstrapComponent::CARD, [
+    MarkupFactory::fromEnum(BootstrapComponent::CARD_HEADER, ['Card Title']),
+    MarkupFactory::fromEnum(BootstrapComponent::CARD_BODY, ['Card content']),
+    MarkupFactory::fromEnum(BootstrapComponent::CARD_FOOTER, ['Footer text']),
+]);
+
+echo $card->render();
+```
+
+**Output:**
+```html
+<div class="card">
+    <div class="card-header">Card Title</div>
+    <div class="card-body">Card content</div>
+    <div class="card-footer">Footer text</div>
+</div>
+```
+
+#### Real-World Example: Tailwind CSS Components
+
+```php
+enum TailwindComponent implements MarkupElementInterface {
+    
+    case CONTAINER;
+    case CARD;
+    case BUTTON_PRIMARY;
+    case BUTTON_SECONDARY;
+    case BADGE;
+    case HERO_SECTION;
+
+    public function wrapper(): string {
+        return match ($this) {
+            self::CONTAINER, self::CARD, self::HERO_SECTION
+                => '<div class="%classes%" %attributes%>%children%</div>',
+            self::BUTTON_PRIMARY, self::BUTTON_SECONDARY
+                => '<button class="%classes%" %attributes%>%children%</button>',
+            self::BADGE
+                => '<span class="%classes%" %attributes%>%children%</span>',
+        };
+    }
+
+    public function classes(): array {
+        return match ($this) {
+            self::CONTAINER => [
+                'container', 'mx-auto', 'px-4'
+            ],
+            self::CARD => [
+                'bg-white', 'rounded-lg', 'shadow-md', 'p-6'
+            ],
+            self::BUTTON_PRIMARY => [
+                'bg-blue-500', 'hover:bg-blue-700', 
+                'text-white', 'font-bold', 'py-2', 'px-4', 'rounded'
+            ],
+            self::BUTTON_SECONDARY => [
+                'bg-gray-500', 'hover:bg-gray-700',
+                'text-white', 'font-bold', 'py-2', 'px-4', 'rounded'
+            ],
+            self::BADGE => [
+                'inline-block', 'bg-gray-200', 'rounded-full',
+                'px-3', 'py-1', 'text-sm', 'font-semibold', 'text-gray-700'
+            ],
+            self::HERO_SECTION => [
+                'bg-gradient-to-r', 'from-blue-500', 'to-purple-600',
+                'text-white', 'py-20', 'text-center'
+            ],
+        };
+    }
+
+    public function attributes(): array {
+        return match ($this) {
+            self::BUTTON_PRIMARY, self::BUTTON_SECONDARY => ['type' => 'button'],
+            default => [],
+        };
+    }
+
+    public function childrenWrapper(): string {
+        return '';
+    }
+}
+
+// Build a page
+$page = MarkupFactory::fromEnum(TailwindComponent::CONTAINER, [
+    MarkupFactory::fromEnum(TailwindComponent::HERO_SECTION, [
+        '<h1 class="text-5xl font-bold mb-4">Welcome!</h1>',
+        '<p class="text-xl mb-8">Start building amazing things</p>',
+        MarkupFactory::fromEnum(TailwindComponent::BUTTON_PRIMARY, ['Get Started']),
+    ]),
+    MarkupFactory::fromEnum(TailwindComponent::CARD, [
+        '<h2 class="text-2xl font-bold mb-4">Features</h2>',
+        '<p>Discover what makes us unique...</p>',
+        MarkupFactory::fromEnum(TailwindComponent::BADGE, ['New']),
+    ]),
+]);
+
+echo $page->render();
+```
+
+#### WordPress Admin Components Example
+
+```php
+enum WpAdminComponent implements MarkupElementInterface {
+    
+    case NOTICE_SUCCESS;
+    case NOTICE_ERROR;
+    case NOTICE_WARNING;
+    case NOTICE_INFO;
+    case METABOX;
+    case WRAP;
+    case FORM_TABLE;
+
+    public function wrapper(): string {
+        return match ($this) {
+            self::NOTICE_SUCCESS, self::NOTICE_ERROR, 
+            self::NOTICE_WARNING, self::NOTICE_INFO
+                => '<div class="notice %classes%" %attributes%><p>%children%</p></div>',
+            self::METABOX
+                => '<div class="postbox %classes%" %attributes%><div class="inside">%children%</div></div>',
+            self::WRAP
+                => '<div class="wrap %classes%" %attributes%>%children%</div>',
+            self::FORM_TABLE
+                => '<table class="form-table %classes%" %attributes%><tbody>%children%</tbody></table>',
+        };
+    }
+
+    public function classes(): array {
+        return match ($this) {
+            self::NOTICE_SUCCESS => ['notice-success'],
+            self::NOTICE_ERROR   => ['notice-error'],
+            self::NOTICE_WARNING => ['notice-warning'],
+            self::NOTICE_INFO    => ['notice-info'],
+            default              => [],
+        };
+    }
+
+    public function attributes(): array {
+        return [];
+    }
+
+    public function childrenWrapper(): string {
+        return match ($this) {
+            self::FORM_TABLE => '<tr><th scope="row">%child%</th><td>%child%</td></tr>',
+            default          => '',
+        };
+    }
+}
+
+// Usage in WordPress
+$notice = MarkupFactory::fromEnum(
+    WpAdminComponent::NOTICE_SUCCESS,
+    ['Settings saved successfully!'],
+    ['is-dismissible']
+);
+
+echo $notice->render();
+// Output: <div class="notice notice-success is-dismissible"><p>Settings saved successfully!</p></div>
+```
+
+#### Key Benefits of Enum-Based Components
+
+1. **IDE Autocompletion**: Your IDE knows all available components
+```php
+// Type "BootstrapComponent::" and see all options!
+MarkupFactory::fromEnum(BootstrapComponent::CARD, ...);
+```
+
+2. **Type Safety**: Catch errors at compile time
+```php
+// This will error if CARDS doesn't exist (typo)
+MarkupFactory::fromEnum(BootstrapComponent::CARDS, ...); // ❌ Error
+```
+
+3. **Centralized Configuration**: Change once, apply everywhere
+```php
+// Update BUTTON_PRIMARY classes in one place
+// All buttons using this enum case are updated automatically
+```
+
+4. **Shareable Libraries**: Package your enums
+```php
+// my-company/bootstrap-components
+composer require my-company/bootstrap-components
+
+use MyCompany\BootstrapComponents\Component;
+$card = MarkupFactory::fromEnum(Component::CARD, ...);
+```
+
+5. **Framework-Agnostic**: Works with any CSS framework
+```php
+// Bootstrap, Tailwind, Bulma, Foundation, Material UI...
+// Create enums for any framework you use!
+```
+
+#### The Four Required Methods
+
+Every enum implementing `MarkupElementInterface` must implement these methods:
+
+```php
+public function wrapper(): string
+    // Returns the HTML template with placeholders:
+    // %children% - where child elements go
+    // %classes% - where CSS classes are inserted
+    // %attributes% - where HTML attributes go
+
+public function classes(): array
+    // Returns array of CSS class names for this element
+    // These are merged with additional classes passed to fromEnum()
+
+public function attributes(): array
+    // Returns array of HTML attributes (key => value)
+    // These are merged with additional attributes passed to fromEnum()
+
+public function childrenWrapper(): string
+    // Optional wrapper for each child element
+    // Use %child% placeholder
+    // Return empty string if not needed
+```
+
+#### Tips for Creating Enums
+
+1. **Use String-Backed Enums** for serialization/debugging:
+```php
+enum MyComponents: string implements MarkupElementInterface {
+    case CARD = 'card';  // ✅ Can be serialized
+```
+
+2. **Group Related Components** in one enum:
+```php
+enum AlertComponent {
+    case SUCCESS;
+    case WARNING;
+    case ERROR;
+    case INFO;
+}
+```
+
+3. **Use Match Expressions** for concise definitions:
+```php
+public function wrapper(): string {
+    return match ($this) {
+        self::BUTTON, self::LINK => '<a class="%classes%" %attributes%>%children%</a>',
+        default => '<div class="%classes%" %attributes%>%children%</div>',
+    };
+}
+```
+
+4. **Document Your Enums** with PHPDoc:
+```php
+/**
+ * Bootstrap Alert Components
+ * 
+ * @see https://getbootstrap.com/docs/5.3/components/alerts/
+ */
+enum AlertComponent implements MarkupElementInterface {
+    /** Success alert with green styling */
+    case SUCCESS;
+    // ...
+}
+```
+
+### MarkupSlot System
 
 Slots allow you to define named placeholders in your components, similar to Vue.js or Laravel Blade:
 
 #### Declaring Slots
 
 ```php
-use MaxPertici\Markup\Slot;
+use MaxPertici\Markup\MarkupSlot;
 
 $layout = new Markup(wrapper: '<div class="layout">%children%</div>');
 $layout->children(
-    new Slot(name: 'header', wrapper: '<header>%slot%</header>', description: 'Page header content'),
+    new MarkupSlot(name: 'header', wrapper: '<header>%slot%</header>', description: 'Page header content'),
     new Markup(
         wrapper: '<main class="content">%children%</main>',
         children: [
-            new Slot(name: 'content', description: 'Main page content')
+            new MarkupSlot(name: 'content', description: 'Main page content')
         ]
     ),
-    new Slot(name: 'footer', wrapper: '<footer>%slot%</footer>', description: 'Page footer content')
+    new MarkupSlot(name: 'footer', wrapper: '<footer>%slot%</footer>', description: 'Page footer content')
 );
 ```
 
@@ -207,7 +780,7 @@ echo $layout->render();
 </div>
 ```
 
-#### Slot Information
+#### MarkupSlot Information
 
 ```php
 // Check if slot exists
@@ -248,7 +821,7 @@ $info = $layout->getSlotsInfo();
 Preserve the wrapper even when a slot is empty:
 
 ```php
-$slot = new Slot(name: 'sidebar', wrapper: '<aside class="sidebar">%slot%</aside>');
+$slot = new MarkupSlot(name: 'sidebar', wrapper: '<aside class="sidebar">%slot%</aside>');
 $slot->preserve(); // Wrapper will render even if empty
 
 $layout->children($slot);
@@ -450,14 +1023,14 @@ echo $nav->render();
 // Define layout component
 $layout = new Markup(wrapper: '<div class="page-wrapper">%children%</div>');
 $layout->children(
-    new Slot(name: 'alerts', wrapper: '<div class="alerts-container">%slot%</div>'),
-    new Slot(name: 'sidebar', wrapper: '<aside class="sidebar">%slot%</aside>'),
+    new MarkupSlot(name: 'alerts', wrapper: '<div class="alerts-container">%slot%</div>'),
+    new MarkupSlot(name: 'sidebar', wrapper: '<aside class="sidebar">%slot%</aside>'),
     new Markup(
         wrapper: '<main class="main-content">%children%</main>',
         children: [
-            new Slot(name: 'breadcrumbs', wrapper: '<nav class="breadcrumbs">%slot%</nav>'),
-            new Slot(name: 'content', wrapper: '<div class="content">%slot%</div>'),
-            new Slot(name: 'actions', wrapper: '<div class="actions">%slot%</div>')
+            new MarkupSlot(name: 'breadcrumbs', wrapper: '<nav class="breadcrumbs">%slot%</nav>'),
+            new MarkupSlot(name: 'content', wrapper: '<div class="content">%slot%</div>'),
+            new MarkupSlot(name: 'actions', wrapper: '<div class="actions">%slot%</div>')
         ]
     )
 );
@@ -637,6 +1210,36 @@ public function __construct(
 - `$children` - Array of initial children
 - `$path` - Internal data tree path (rarely used directly)
 
+### MarkupFactory Class
+
+Factory class for creating Markup instances.
+
+#### Static Methods
+
+```php
+MarkupFactory::fromString(
+    string $tag,
+    string $content = '',
+    array $classes = [],
+    array $attributes = []
+): Markup
+
+MarkupFactory::fromHtml(string $html, int $max_depth = PHP_INT_MAX): Markup
+
+MarkupFactory::fromEnum(
+    MarkupElementInterface $element,
+    array $children = [],
+    array $classes = [],
+    array $attributes = []
+): Markup
+```
+
+**`fromString()`** - Creates a Markup instance with a simple wrapper (first level only). Content is not parsed.
+
+**`fromHtml()`** - Recursively parses HTML and creates a complete Markup tree. Optional `$max_depth` parameter limits parsing depth.
+
+**`fromEnum()`** - Creates a Markup instance from an enum implementing `MarkupElementInterface`. The enum defines the wrapper template, default classes, and attributes. Additional classes and attributes are merged with the enum's defaults.
+
 #### Metadata Methods
 
 ```php
@@ -672,12 +1275,12 @@ setChildren(array $children): self
 orderChildren(callable $callback): self
 ```
 
-#### Slot Methods
+#### MarkupSlot Methods
 
 ```php
 slot(string $name, mixed $items): self
 slots(?array $names = null): array
-getSlot(string $name): ?Slot
+getSlot(string $name): ?MarkupSlot
 slotNames(): array
 filledSlotNames(): array
 hasSlot(string $name): bool
@@ -699,7 +1302,7 @@ render(): string
 print(): void
 ```
 
-### Slot Class
+### MarkupSlot Class
 
 #### Constructor
 
@@ -755,9 +1358,9 @@ Create reusable component functions:
 function card($title, $content, $footer = null) {
     $card = new Markup(wrapper: '<div class="card">%children%</div>');
     $card->children(
-        new Slot(name: 'header', wrapper: '<div class="card-header">%slot%</div>'),
-        new Slot(name: 'body', wrapper: '<div class="card-body">%slot%</div>'),
-        new Slot(name: 'footer', wrapper: '<div class="card-footer">%slot%</div>')
+        new MarkupSlot(name: 'header', wrapper: '<div class="card-header">%slot%</div>'),
+        new MarkupSlot(name: 'body', wrapper: '<div class="card-body">%slot%</div>'),
+        new MarkupSlot(name: 'footer', wrapper: '<div class="card-footer">%slot%</div>')
     );
     
     $card->slot('header', $title);

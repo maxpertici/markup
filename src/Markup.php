@@ -84,10 +84,10 @@ class Markup implements MarkupInterface {
 	protected array $children = [];
 
 	/**
-	 * Array of registered Slot declarations keyed by slot name.
+	 * Array of registered MarkupSlot declarations keyed by slot name.
 	 *
 	 * @since 1.0.0
-	 * @var array<string, Slot>
+	 * @var array<string, MarkupSlot>
 	 */
 	protected array $declared_slots = [];
 
@@ -352,13 +352,13 @@ class Markup implements MarkupInterface {
 	/**
 	 * Adds child elements to the markup.
 	 *
-	 * Children can be strings, Markup instances, Slot declarations, or callable functions.
-	 * When a Slot object is added, it is automatically registered for later reference.
+	 * Children can be strings, Markup instances, MarkupSlot declarations, or callable functions.
+	 * When a MarkupSlot object is added, it is automatically registered for later reference.
 	 * Multiple children can be passed as separate arguments or as an array.
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param mixed ...$children Child elements to add (strings, Markup instances, Slot objects, or callables).
+	 * @param mixed ...$children Child elements to add (strings, Markup instances, MarkupSlot objects, or callables).
 	 * @return self Returns $this for method chaining.
 	 */
 	public function children( ...$children ): self {
@@ -392,7 +392,7 @@ class Markup implements MarkupInterface {
 	 * Replaces the entire children array with a new one.
 	 *
 	 * This method allows you to completely replace the children array,
-	 * useful for reordering or filtering children. All Slot objects in
+	 * useful for reordering or filtering children. All MarkupSlot objects in
 	 * the new array will be automatically registered.
 	 *
 	 * @since 1.0.0
@@ -435,7 +435,7 @@ class Markup implements MarkupInterface {
 	}
 
 	/**
-	 * Adds a single child item, detecting and registering Slot objects.
+	 * Adds a single child item, detecting and registering MarkupSlot objects.
 	 *
 	 * @since 1.0.0
 	 *
@@ -443,8 +443,8 @@ class Markup implements MarkupInterface {
 	 * @return void
 	 */
 	private function addChildItem( $item ): void {
-		// If it's a Slot object, register it
-		if ( $item instanceof Slot ) {
+		// If it's a MarkupSlot object, register it
+		if ( $item instanceof MarkupSlot ) {
 			$this->declared_slots[ $item->name() ] = $item;
 		}
 
@@ -453,16 +453,16 @@ class Markup implements MarkupInterface {
 	}
 
 	/**
-	 * Gets all declared Slot objects, optionally filtered by names.
+	 * Gets all declared MarkupSlot objects, optionally filtered by names.
 	 *
-	 * Returns Slot objects that were added as children.
+	 * Returns MarkupSlot objects that were added as children.
 	 * When called without parameter, returns all slots.
 	 * When called with an array of names, returns only those slots.
 	 *
 	 * @since 1.0.0
 	 *
 	 * @param array|null $names Optional. Array of slot names to filter. If null, returns all slots.
-	 * @return array<string, Slot> Array of Slot objects keyed by slot name.
+	 * @return array<string, MarkupSlot> Array of MarkupSlot objects keyed by slot name.
 	 */
 	public function slots( ?array $names = null ): array {
 		if ( null === $names ) {
@@ -477,28 +477,28 @@ class Markup implements MarkupInterface {
 	}
 
 	/**
-	 * Gets a specific declared Slot object by name.
+	 * Gets a specific declared MarkupSlot object by name.
 	 *
 	 * @since 1.0.0
 	 *
 	 * @param string $name The name of the slot to retrieve.
-	 * @return Slot|null The Slot object if found, null otherwise.
+	 * @return MarkupSlot|null The MarkupSlot object if found, null otherwise.
 	 */
-	public function getSlot( string $name ): ?Slot {
+	public function getSlot( string $name ): ?MarkupSlot {
 		return $this->declared_slots[ $name ] ?? null;
 	}
 
 	/**
 	 * Adds content to a named slot.
 	 *
-	 * Accepts arrays or any supported type (string, Markup, Slot, callable).
+	 * Accepts arrays or any supported type (string, Markup, MarkupSlot, callable).
 	 * In the wrapper template, use %slot:name% placeholder to position the slot.
 	 * Multiple elements can be added to the same slot.
 	 *
 	 * @since 1.0.0
 	 *
 	 * @param string $name  The name of the slot.
-	 * @param mixed  $items Items to add - can be an array or any supported type (string, Markup, Slot, callable).
+	 * @param mixed  $items Items to add - can be an array or any supported type (string, Markup, MarkupSlot, callable).
 	 * @return self Returns $this for method chaining.
 	 */
 	public function slot( string $name, $items ): self {
@@ -530,8 +530,8 @@ class Markup implements MarkupInterface {
 	 * @return void
 	 */
 	private function addSlotItem( string $name, $item ): void {
-		// Register Slot objects if they're being added as slot content
-		if ( $item instanceof Slot ) {
+		// Register MarkupSlot objects if they're being added as slot content
+		if ( $item instanceof MarkupSlot ) {
 			$this->declared_slots[ $item->name() ] = $item;
 		}
 
@@ -541,7 +541,7 @@ class Markup implements MarkupInterface {
 	/**
 	 * Gets the names of all declared slots.
 	 *
-	 * Returns an array of slot names that have been added as Slot children.
+	 * Returns an array of slot names that have been added as MarkupSlot children.
 	 *
 	 * @since 1.0.0
 	 *
@@ -571,7 +571,7 @@ class Markup implements MarkupInterface {
 	}
 
 	/**
-	 * Checks if a slot has been declared (added as a Slot child).
+	 * Checks if a slot has been declared (added as a MarkupSlot child).
 	 *
 	 * @since 1.0.0
 	 *
@@ -729,35 +729,36 @@ class Markup implements MarkupInterface {
 			function ( $value, $path ) use ( $that ): void {
 				self::$path = $path;
 
-				// If it's a Slot object, render its content
-				if ( $value instanceof Slot ) {
+				// If it's a MarkupSlot object, render its content
+				if ( $value instanceof MarkupSlot ) {
 					$that->output( $that->renderSlot( $value ) );
 					return;
 				}
 
-				$that->output( $that->childrenOpenerTag() );
+			$that->output( $that->childrenOpenerTag() );
 
-				if ( $value instanceof Markup ) {
-					// Use render() or print() to respect BlockMarkup's overrides
-					if ( $that->streaming ) {
-						$value->print();
-					} else {
-						$that->output( $value->render() );
-					}
-				} elseif ( is_callable( $value ) ) {
-					// Support des callbacks (template parts, etc.)
-					if ( $that->streaming ) {
-						call_user_func( $value );
-					} else {
-						ob_start();
-						call_user_func( $value );
-						$that->output( ob_get_clean() );
-					}
-				} elseif ( is_string( $value ) ) {
-					$that->output( $value );
+			if ( $value instanceof Markup ) {
+				// Use render() or print() to respect BlockMarkup's overrides
+				if ( $that->streaming ) {
+					$value->print();
+				} else {
+					$that->output( $value->render() );
 				}
+			} elseif ( is_string( $value ) ) {
+				// Check strings first to avoid treating function names as callables
+				$that->output( $value );
+			} elseif ( is_callable( $value ) ) {
+				// Support for callbacks (closures, array callables, etc.)
+				if ( $that->streaming ) {
+					call_user_func( $value );
+				} else {
+					ob_start();
+					call_user_func( $value );
+					$that->output( ob_get_clean() );
+				}
+			}
 
-				$that->output( $that->childrenCloserTag() );
+			$that->output( $that->childrenCloserTag() );
 			}
 		);
 
@@ -864,14 +865,14 @@ class Markup implements MarkupInterface {
 	}
 
 	/**
-	 * Renders a Slot object with its content and wrapper.
+	 * Renders a MarkupSlot object with its content and wrapper.
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param Slot $slot The Slot object to render.
+	 * @param MarkupSlot $slot The MarkupSlot object to render.
 	 * @return string The rendered slot content with wrapper if applicable.
 	 */
-	private function renderSlot( Slot $slot ): string {
+	private function renderSlot( MarkupSlot $slot ): string {
 		$name        = $slot->name();
 		$has_content = isset( $this->slots_content[ $name ] ) && ! empty( $this->slots_content[ $name ] );
 		$wrapper     = $slot->wrapper();
@@ -889,21 +890,22 @@ class Markup implements MarkupInterface {
 				$this->output( $wrapper_parts[0] );
 			}
 
-			// Render all items in the slot
-			if ( $has_content ) {
-				foreach ( $this->slots_content[ $name ] as $item ) {
-					if ( $item instanceof Markup ) {
-						$item->print();
-					} elseif ( $item instanceof Slot ) {
-						// Render nested Slot recursively
-						$this->renderSlot( $item );
-					} elseif ( is_callable( $item ) ) {
-						call_user_func( $item );
-					} elseif ( is_string( $item ) ) {
-						$this->output( $item );
-					}
+		// Render all items in the slot
+		if ( $has_content ) {
+			foreach ( $this->slots_content[ $name ] as $item ) {
+				if ( $item instanceof Markup ) {
+				$item->print();
+			} elseif ( $item instanceof MarkupSlot ) {
+				// Render nested MarkupSlot recursively
+				$this->renderSlot( $item );
+				} elseif ( is_string( $item ) ) {
+					// Check strings first to avoid treating function names as callables
+					$this->output( $item );
+				} elseif ( is_callable( $item ) ) {
+					call_user_func( $item );
 				}
 			}
+		}
 
 			// Output closing wrapper
 			if ( ! empty( $wrapper ) && isset( $wrapper_parts[1] ) ) {
@@ -916,23 +918,24 @@ class Markup implements MarkupInterface {
 		// Non-streaming mode: accumulate content
 		$content = '';
 
-		// Render all items in the slot if there's content
-		if ( $has_content ) {
-			foreach ( $this->slots_content[ $name ] as $item ) {
-				if ( $item instanceof Markup ) {
-					$content .= $item->render();
-				} elseif ( $item instanceof Slot ) {
-					// Render nested Slot recursively
-					$content .= $this->renderSlot( $item );
-				} elseif ( is_callable( $item ) ) {
-					ob_start();
-					call_user_func( $item );
-					$content .= ob_get_clean();
-				} elseif ( is_string( $item ) ) {
-					$content .= $item;
-				}
+	// Render all items in the slot if there's content
+	if ( $has_content ) {
+		foreach ( $this->slots_content[ $name ] as $item ) {
+			if ( $item instanceof Markup ) {
+			$content .= $item->render();
+		} elseif ( $item instanceof MarkupSlot ) {
+			// Render nested MarkupSlot recursively
+			$content .= $this->renderSlot( $item );
+			} elseif ( is_string( $item ) ) {
+				// Check strings first to avoid treating function names as callables
+				$content .= $item;
+			} elseif ( is_callable( $item ) ) {
+				ob_start();
+				call_user_func( $item );
+				$content .= ob_get_clean();
 			}
 		}
+	}
 
 		// Apply wrapper if slot has one
 		if ( ! empty( $wrapper ) ) {
