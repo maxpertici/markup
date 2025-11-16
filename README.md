@@ -1111,6 +1111,148 @@ $finder->all(bool $deep = true): array
 - Cache search results if you need to use them multiple times
 - Be specific with your callbacks to avoid unnecessary traversal
 
+#### CSS Selector Syntax
+
+**New in v1.4.0**: Find elements using CSS selector syntax for a more familiar query interface.
+
+The `css()` method provides a jQuery/querySelectorAll-like syntax for finding elements:
+
+```php
+// Simple selectors
+$sections = $page->find()->css('.section');           // by class
+$divs = $page->find()->css('div');                     // by tag
+$hero = $page->find()->css('#hero-section');          // by ID
+$withRole = $page->find()->css('[role]');              // by attribute
+$main = $page->find()->css('[role="main"]');           // by attribute value
+
+// Combined selectors
+$highlighted = $page->find()->css('p.highlight');      // tag + class
+$multiple = $page->find()->css('.hero.section');       // multiple classes
+
+// Descendant selector (space) - any level deep
+$navLinks = $page->find()->css('nav a');               // all <a> inside <nav>
+$activeItems = $page->find()->css('nav li.active');    // active <li> inside <nav>
+
+// Direct child selector (>) - immediate children only
+$headerNav = $page->find()->css('.header > nav');      // <nav> direct child of .header
+$directP = $page->find()->css('.content > p');         // <p> direct children of .content
+
+// :has() pseudo-class - find parents containing specific children
+$liWithLinks = $page->find()->css('li:has(a)');                     // <li> containing <a>
+$sectionsWithHighlight = $page->find()->css('section:has(.highlight)'); // sections with .highlight
+$divsWithDirectP = $page->find()->css('div:has(> p)');             // divs with direct <p> child
+
+// Complex selectors
+$activeLinks = $page->find()->css('header > nav li.active a');      // combine everything
+$navWithActive = $page->find()->css('nav:has(li.active) a');        // all links in nav with active items
+```
+
+**Supported Selectors:**
+
+| Selector | Description | Example |
+|----------|-------------|---------|
+| `.class` | Class selector | `.section`, `.btn-primary` |
+| `tag` | Tag selector | `div`, `p`, `span` |
+| `#id` | ID selector | `#main-content`, `#hero` |
+| `[attr]` | Attribute exists | `[role]`, `[data-id]` |
+| `[attr="value"]` | Attribute equals | `[role="main"]`, `[type="button"]` |
+| `tag.class` | Combined | `p.highlight`, `div.container` |
+| `.class1.class2` | Multiple classes | `.btn.btn-primary` |
+| `A B` | Descendant | `nav li`, `section p` |
+| `A > B` | Direct child | `.header > nav`, `ul > li` |
+| `:has(selector)` | Has child | `li:has(a)`, `section:has(.highlight)` |
+
+**Performance Optimization:**
+
+Simple selectors (`.class`, `tag`, `#id`) are automatically optimized to use the existing specialized methods (`findByClass()`, `findByTag()`, etc.) for maximum performance:
+
+```php
+// These have identical performance:
+$page->find()->css('.section');     // Uses findByClass() internally
+$page->find()->findByClass('section');
+
+// Benchmark results (1000 iterations):
+// findByClass(): 3.36 ms
+// css('.section'): 3.52 ms (only 0.16ms difference!)
+```
+
+**Practical Examples:**
+
+```php
+// Build a navigation structure
+$page = MarkupFactory::fromElement(HtmlTag::DIV)
+    ->addClass('page')
+    ->children(
+        MarkupFactory::fromElement(HtmlTag::HEADER)
+            ->addClass('header')
+            ->children(
+                MarkupFactory::fromElement(HtmlTag::NAV)
+                    ->addClass('nav', 'primary')
+                    ->children(
+                        MarkupFactory::fromElement(HtmlTag::UL)
+                            ->children(
+                                MarkupFactory::fromElement(HtmlTag::LI)
+                                    ->addClass('active')
+                                    ->children(
+                                        MarkupFactory::fromElement(HtmlTag::A)
+                                            ->setAttribute('href', '/')
+                                            ->children('Home')
+                                    ),
+                                MarkupFactory::fromElement(HtmlTag::LI)->children(
+                                    MarkupFactory::fromElement(HtmlTag::A)
+                                        ->setAttribute('href', '/about')
+                                        ->children('About')
+                                )
+                            )
+                    )
+            )
+    );
+
+// Find all navigation links
+$allLinks = $page->find()->css('nav a');
+echo "Found " . count($allLinks) . " links\n";
+
+// Find only links in the header's navigation
+$headerLinks = $page->find()->css('.header > nav a');
+
+// Find the active menu item
+$activeItem = $page->find()->css('li.active');
+
+// Find navigations that have an active item
+$navWithActive = $page->find()->css('nav:has(li.active)');
+
+// Modify found elements
+foreach ($page->find()->css('nav a') as $link) {
+    $link->addClass('nav-link');
+}
+```
+
+**Comparison: Old API vs CSS Selectors:**
+
+```php
+// Old API - verbose but explicit
+$sections = $page->find()->findByClass('section');
+$mainSections = $page->find()->search(function($m) {
+    return $m->hasClass('section') && $m->hasAttribute('role', 'main');
+});
+
+// CSS Selectors - concise and familiar
+$sections = $page->find()->css('.section');
+$mainSections = $page->find()->css('.section[role="main"]');
+```
+
+**When to use CSS selectors:**
+- ✅ Familiar with CSS/jQuery selectors
+- ✅ Need complex descendant/child relationships
+- ✅ Want concise, readable queries
+- ✅ Working with nested structures
+
+**When to use the original API:**
+- ✅ Need maximum performance for simple queries
+- ✅ Custom search logic not expressible in CSS
+- ✅ Working with slugs (not supported in CSS selectors)
+- ✅ Complex callback-based conditions
+
 ### Children Wrapper
 
 Wrap each child individually using the `%child%` placeholder:
@@ -1564,6 +1706,11 @@ public function __construct(Markup $markup)
 **Note:** Usually accessed via `$markup->find()` rather than direct instantiation.
 
 #### Search Methods
+
+```php
+css(string $selector): array
+```
+**New in v1.4.0**: Finds Markup elements using CSS selector syntax. Supports: `.class`, `tag`, `#id`, `[attr]`, `[attr="value"]`, combined selectors, descendant (` `), direct child (`>`), and `:has()` pseudo-class. See [CSS Selector Syntax](#css-selector-syntax) for detailed usage.
 
 ```php
 findByClass(string $class, bool $deep = true): array

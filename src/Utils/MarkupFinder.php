@@ -236,6 +236,351 @@ class MarkupFinder {
 	}
 
 	/**
+	 * Finds Markup elements using CSS selector syntax.
+	 *
+	 * Supports:
+	 * - Basic selectors: tag, .class, #id, [attr], [attr="value"]
+	 * - Combinations: tag.class[attr]
+	 * - Descendant: "parent child"
+	 * - Direct child: "parent > child"
+	 * - :has() pseudo-class: "parent:has(child)"
+	 *
+	 * Examples:
+	 * ```php
+	 * $markup->find()->css('.section');                    // by class
+	 * $markup->find()->css('div');                         // by tag
+	 * $markup->find()->css('[role="main"]');               // by attribute
+	 * $markup->find()->css('nav li.active');               // descendant
+	 * $markup->find()->css('.header > nav');               // direct child
+	 * $markup->find()->css('section:has(.highlight)');     // has child
+	 * $markup->find()->css('header > nav:has(li.active) a'); // complex
+	 * ```
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param string $selector The CSS selector string.
+	 * @return array Array of matching Markup instances.
+	 */
+	public function css( string $selector ): array {
+		$selector = trim( $selector );
+
+		// Optimization: Use existing methods for simple selectors
+		if ( preg_match( '/^\.[\w-]+$/', $selector ) ) {
+			// ".class" -> findByClass()
+			return $this->findByClass( substr( $selector, 1 ) );
+		}
+
+		if ( preg_match( '/^\w+$/', $selector ) ) {
+			// "div" -> findByTag()
+			return $this->findByTag( $selector );
+		}
+
+		if ( preg_match( '/^#[\w-]+$/', $selector ) ) {
+			// "#id" -> findByAttribute('id', 'value')
+			return $this->findByAttribute( 'id', substr( $selector, 1 ) );
+		}
+
+		// Complex selector - parse and search
+		$segments = $this->parseSelector( $selector );
+
+		if ( empty( $segments ) ) {
+			return [];
+		}
+
+		// Start search with the first segment
+		return $this->searchWithSelector( $segments, 0, $this->root );
+	}
+
+	/**
+	 * Parses a CSS selector into segments with combinators.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param string $selector The CSS selector string.
+	 * @return array Array of segments with combinators.
+	 */
+	private function parseSelector( string $selector ): array {
+		$segments = [];
+		$current  = '';
+		$length   = strlen( $selector );
+		$in_has   = 0; // Track parenthesis depth for :has()
+
+		for ( $i = 0; $i < $length; $i++ ) {
+			$char = $selector[ $i ];
+
+			// Track :has() parentheses
+			if ( '(' === $char ) {
+				$in_has++;
+				$current .= $char;
+				continue;
+			}
+
+			if ( ')' === $char ) {
+				$in_has--;
+				$current .= $char;
+				continue;
+			}
+
+			// Only process combinators outside of :has()
+			if ( 0 === $in_has ) {
+				// Direct child combinator
+				if ( '>' === $char ) {
+					if ( '' !== trim( $current ) ) {
+						$segments[] = [
+							'selector'   => trim( $current ),
+							'combinator' => '>',
+						];
+						$current    = '';
+					}
+					continue;
+				}
+
+				// Descendant combinator (space)
+				if ( ' ' === $char && '' !== trim( $current ) ) {
+					// Check if next non-space char is not >
+					$next_pos = $i + 1;
+					while ( $next_pos < $length && ' ' === $selector[ $next_pos ] ) {
+						$next_pos++;
+					}
+
+					if ( $next_pos < $length && '>' !== $selector[ $next_pos ] ) {
+						$segments[] = [
+							'selector'   => trim( $current ),
+							'combinator' => ' ',
+						];
+						$current    = '';
+						continue;
+					}
+				}
+			}
+
+			// Add character to current segment
+			if ( ' ' !== $char || $in_has > 0 ) {
+				$current .= $char;
+			}
+		}
+
+		// Add last segment
+		if ( '' !== trim( $current ) ) {
+			$segments[] = [
+				'selector'   => trim( $current ),
+				'combinator' => null,
+			];
+		}
+
+		// Parse each segment
+		foreach ( $segments as $key => $segment ) {
+			$segments[ $key ]['parsed'] = $this->parseSegment( $segment['selector'] );
+		}
+
+		return $segments;
+	}
+
+	/**
+	 * Parses a single selector segment (e.g., "div.class[attr]:has(child)").
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param string $segment The selector segment.
+	 * @return array Parsed segment data.
+	 */
+	private function parseSegment( string $segment ): array {
+		$parsed = [
+			'tag'        => null,
+			'id'         => null,
+			'classes'    => [],
+			'attributes' => [],
+			'has'        => null,
+		];
+
+		// Extract :has() first (it contains parentheses)
+		if ( preg_match( '/:has\(([^)]+)\)/', $segment, $has_match ) ) {
+			$parsed['has'] = $has_match[1];
+			$segment       = str_replace( $has_match[0], '', $segment );
+		}
+
+		// Extract ID
+		if ( preg_match( '/#([\w-]+)/', $segment, $id_match ) ) {
+			$parsed['id'] = $id_match[1];
+			$segment      = str_replace( $id_match[0], '', $segment );
+		}
+
+		// Extract classes
+		if ( preg_match_all( '/\.([\w-]+)/', $segment, $class_matches ) ) {
+			$parsed['classes'] = $class_matches[1];
+			foreach ( $class_matches[0] as $match ) {
+				$segment = str_replace( $match, '', $segment );
+			}
+		}
+
+		// Extract attributes
+		if ( preg_match_all( '/\[([\w-]+)(?:="([^"]*)")?\]/', $segment, $attr_matches ) ) {
+			foreach ( $attr_matches[1] as $index => $attr_name ) {
+				$attr_value                      = isset( $attr_matches[2][ $index ] ) && '' !== $attr_matches[2][ $index ]
+					? $attr_matches[2][ $index ]
+					: null;
+				$parsed['attributes'][ $attr_name ] = $attr_value;
+			}
+			foreach ( $attr_matches[0] as $match ) {
+				$segment = str_replace( $match, '', $segment );
+			}
+		}
+
+		// What's left is the tag
+		$segment = trim( $segment );
+		if ( '' !== $segment ) {
+			$parsed['tag'] = $segment;
+		}
+
+		return $parsed;
+	}
+
+	/**
+	 * Searches with a selector chain recursively.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param array  $segments The parsed selector segments.
+	 * @param int    $index    Current segment index.
+	 * @param Markup $context  The context Markup to search from.
+	 * @return array Array of matching Markup instances.
+	 */
+	private function searchWithSelector( array $segments, int $index, Markup $context ): array {
+		if ( ! isset( $segments[ $index ] ) ) {
+			return [];
+		}
+
+		$segment    = $segments[ $index ];
+		$parsed     = $segment['parsed'];
+		$combinator = $segment['combinator'];
+		$is_last    = ! isset( $segments[ $index + 1 ] );
+
+		$results = [];
+
+		// For the first segment, search from root
+		if ( 0 === $index ) {
+			$candidates = $this->findMatchingSegment( $parsed, $context, true );
+		} else {
+			// For subsequent segments, behavior depends on combinator
+			$prev_combinator = $segments[ $index - 1 ]['combinator'];
+
+			if ( '>' === $prev_combinator ) {
+				// Direct child: search only in immediate children
+				$candidates = $this->findMatchingSegment( $parsed, $context, false );
+			} else {
+				// Descendant: search in all descendants
+				$candidates = $this->findMatchingSegment( $parsed, $context, true );
+			}
+		}
+
+		// If this is the last segment, return the candidates
+		if ( $is_last ) {
+			return $candidates;
+		}
+
+		// Otherwise, continue searching in each candidate
+		foreach ( $candidates as $candidate ) {
+			$nested_results = $this->searchWithSelector( $segments, $index + 1, $candidate );
+			$results        = array_merge( $results, $nested_results );
+		}
+
+		return $results;
+	}
+
+	/**
+	 * Finds elements matching a parsed segment.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param array  $parsed The parsed segment.
+	 * @param Markup $root   The root to search from.
+	 * @param bool   $deep   Whether to search deeply or only direct children.
+	 * @return array Array of matching Markup instances.
+	 */
+	private function findMatchingSegment( array $parsed, Markup $root, bool $deep ): array {
+		$finder = new MarkupFinder( $root );
+
+		return $finder->search(
+			function ( Markup $markup ) use ( $parsed ) {
+				return $this->matchesSegment( $markup, $parsed );
+			},
+			$deep
+		);
+	}
+
+	/**
+	 * Checks if a Markup element matches a parsed segment.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param Markup $markup The Markup element to test.
+	 * @param array  $parsed The parsed segment data.
+	 * @return bool True if matches, false otherwise.
+	 */
+	private function matchesSegment( Markup $markup, array $parsed ): bool {
+		// Check tag
+		if ( null !== $parsed['tag'] ) {
+			$wrapper = $markup->getWrapper();
+			if ( empty( $wrapper ) ) {
+				return false;
+			}
+
+			if ( preg_match( '/^<(\w+)/', $wrapper, $matches ) ) {
+				if ( strtolower( $matches[1] ) !== strtolower( $parsed['tag'] ) ) {
+					return false;
+				}
+			} else {
+				return false;
+			}
+		}
+
+		// Check ID
+		if ( null !== $parsed['id'] ) {
+			if ( $markup->getAttribute( 'id' ) !== $parsed['id'] ) {
+				return false;
+			}
+		}
+
+		// Check classes
+		foreach ( $parsed['classes'] as $class ) {
+			if ( ! $markup->hasClass( $class ) ) {
+				return false;
+			}
+		}
+
+		// Check attributes
+		foreach ( $parsed['attributes'] as $attr_name => $attr_value ) {
+			if ( ! $markup->hasAttribute( $attr_name ) ) {
+				return false;
+			}
+
+			if ( null !== $attr_value && $markup->getAttribute( $attr_name ) !== $attr_value ) {
+				return false;
+			}
+		}
+
+		// Check :has()
+		if ( null !== $parsed['has'] ) {
+			$finder      = new MarkupFinder( $markup );
+			$has_results = $finder->css( $parsed['has'] );
+
+			// Don't include the element itself in :has() results
+			$has_results = array_filter(
+				$has_results,
+				function ( $element ) use ( $markup ) {
+					return $element !== $markup;
+				}
+			);
+
+			if ( empty( $has_results ) ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
 	 * Counts all Markup instances that match a callback.
 	 *
 	 * @since 1.3.0

@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2025-11-16
+
+### Added
+
+- **New Method: `MarkupFinder::css()`** - Find elements using CSS selector syntax for a more familiar and concise query interface.
+  - **Simple selectors**: `.class`, `tag`, `#id`, `[attr]`, `[attr="value"]`
+  - **Combined selectors**: `tag.class`, `.class1.class2`
+  - **Descendant selector** (space): `parent child` - finds any descendant at any level
+  - **Direct child selector** (`>`): `parent > child` - finds only immediate children
+  - **:has() pseudo-class**: `parent:has(child)` - finds parents containing specific children
+  - **Complex selectors**: Combine all above features, e.g., `header > nav:has(li.active) a`
+  - Example: `$page->find()->css('nav li.active a')`
+  
+- **Performance optimization**: Simple selectors (`.class`, `tag`, `#id`) automatically use existing specialized methods (`findByClass()`, `findByTag()`, etc.) for optimal performance.
+  - Benchmark shows only ~0.16ms difference (0.5% slower) compared to direct method calls
+  
+- Added comprehensive example in `examples/css-selector-example.php` demonstrating all selector types and performance comparison.
+- Added detailed documentation in README.md with examples, supported selectors table, and performance tips.
+
+### Implementation Details
+
+- CSS selector parsing handles parentheses tracking for `:has()` nested selectors
+- Combinator handling distinguishes between descendant (space) and direct child (`>`) relationships
+- Recursive search algorithm with context awareness for efficient traversal
+- Regex-based segment parsing extracts tag, classes, ID, attributes, and :has() pseudo-class
+- Smart optimization: simple selectors bypass parsing and use existing fast paths
+
+## [1.3.0]
 
 ### Added
 
