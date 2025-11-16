@@ -1,12 +1,19 @@
 # GitHub Pages Configuration
 title: Markup
 description: A PHP library for building and manipulating HTML elements programmatically
-remote_theme: pages-themes/midnight@v0.2.0
+remote_theme: just-the-docs/just-the-docs
+color_scheme: dark
 show_downloads: true
 
 # Plugins
 plugins:
   - jekyll-remote-theme
+
+# Just the Docs Configuration
+search_enabled: true
+aux_links:
+  "View on GitHub":
+    - "//github.com/maxpertici/markup"
 
 # GitHub repository
 repository: maxpertici/markup
