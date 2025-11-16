@@ -7,8 +7,7 @@
 
 namespace MaxPertici\Markup;
 
-use MaxPertici\Markup\Utils\MarkupDataTreeWalker;
-use MaxPertici\Markup\Utils\MarkupFinder;
+use MaxPertici\Markup\MarkupFinder;
 
 /**
  * Class Markup
@@ -109,14 +108,6 @@ class Markup implements MarkupInterface {
 	private bool $streaming = false;
 
 	/**
-	 * Current path in the data tree.
-	 *
-	 * @since 1.0.0
-	 * @var string
-	 */
-	private static string $path = '';
-
-	/**
 	 * Constructor.
 	 *
 	 * @since 1.0.0
@@ -126,7 +117,6 @@ class Markup implements MarkupInterface {
 	 * @param array  $wrapper_attributes  Optional. HTML attributes for the wrapper. Default empty array.
 	 * @param string $children_wrapper    Optional. The children wrapper HTML template. Default empty string.
 	 * @param array  $children            Optional. Array of child elements. Default empty array.
-	 * @param string $path                Optional. Initial path in the data tree. Default empty string.
 	 */
 	public function __construct(
 		string $wrapper = '',
@@ -134,14 +124,12 @@ class Markup implements MarkupInterface {
 		array $wrapper_attributes = [],
 		string $children_wrapper = '',
 		array $children = [],
-		string $path = '',
 	) {
 		$this->wrapper            = $wrapper;
 		$this->wrapper_class      = $wrapper_class;
 		$this->wrapper_attributes = $wrapper_attributes;
 		$this->children_wrapper   = $children_wrapper;
 		$this->children           = $children;
-		self::$path               = $path;
 	}
 
 	/**
@@ -763,16 +751,14 @@ class Markup implements MarkupInterface {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param string $path Optional. Current path in the data tree. Default empty string.
 	 * @return string The generated markup string.
 	 */
-	private function execute( string $path = '' ): string {
-		self::$path   = $path;
+	private function execute(): string {
 		$this->markup = '';
 		$this->output( $this->wrapperOpenerTag() );
 
 		// Directly iterate children instead of using TreeWalker (much faster)
-		$this->renderChildren( $this->children, $path );
+		$this->renderChildren( $this->children );
 
 		$this->output( $this->containerCloserTag() );
 		return $this->markup;
@@ -785,15 +771,11 @@ class Markup implements MarkupInterface {
 	 *
 	 * @since 1.3.0
 	 *
-	 * @param array  $children The children to render.
-	 * @param string $path     Current path in the tree.
+	 * @param array $children The children to render.
 	 * @return void
 	 */
-	private function renderChildren( array $children, string $path = '' ): void {
-		foreach ( $children as $key => $value ) {
-			$current_path = $path ? $path . '_' . $key : (string) $key;
-			self::$path   = $current_path;
-
+	private function renderChildren( array $children ): void {
+		foreach ( $children as $value ) {
 			// If it's a MarkupSlot object, render its content
 			if ( $value instanceof MarkupSlot ) {
 				$this->output( $this->renderSlot( $value ) );
