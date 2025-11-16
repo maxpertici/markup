@@ -157,7 +157,7 @@ class Markup implements MarkupInterface {
 	 *
 	 * This method is useful for introspection and search operations.
 	 *
-	 * @since 1.3.0
+	 * @since 1.0.0
 	 *
 	 * @return string The wrapper HTML template.
 	 */
@@ -375,6 +375,21 @@ class Markup implements MarkupInterface {
 			}
 		}
 		return $this;
+	}
+
+	/**
+	 * Appends child elements to the markup (alias of children()).
+	 *
+	 * This is a semantic alias for children() that makes the API more intuitive.
+	 * Works exactly like children() but with clearer "append" intent.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param mixed ...$children Child elements to append (strings, Markup instances, MarkupSlot objects, or callables).
+	 * @return self Returns $this for method chaining.
+	 */
+	public function append( ...$children ): self {
+		return $this->children( ...$children );
 	}
 
 	/**
@@ -708,7 +723,7 @@ class Markup implements MarkupInterface {
 	 * });
 	 * ```
 	 *
-	 * @since 1.3.0
+	 * @since 1.0.0
 	 *
 	 * @return MarkupFinder The finder instance for method chaining.
 	 */
@@ -769,7 +784,7 @@ class Markup implements MarkupInterface {
 	 *
 	 * This method replaces the TreeWalker for better performance.
 	 *
-	 * @since 1.3.0
+	 * @since 1.0.0
 	 *
 	 * @param array $children The children to render.
 	 * @return void

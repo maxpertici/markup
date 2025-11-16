@@ -13,14 +13,14 @@ namespace MaxPertici\Markup;
  * Defines the contract for markup element configurations.
  * Implement this interface to create custom element enums.
  *
- * @since 1.2.0
+ * @since 1.0.0
  */
 interface MarkupElementInterface {
 
 	/**
 	 * Gets the HTML wrapper template for this element.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @return string The wrapper template with %children%, %classes%, and %attributes% placeholders.
 	 */
@@ -29,7 +29,7 @@ interface MarkupElementInterface {
 	/**
 	 * Gets the CSS classes for this element.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @return array Array of CSS class names.
 	 */
@@ -38,7 +38,7 @@ interface MarkupElementInterface {
 	/**
 	 * Gets the HTML attributes for this element.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @return array Associative array of attribute names and values.
 	 */
@@ -47,7 +47,7 @@ interface MarkupElementInterface {
 	/**
 	 * Gets the children wrapper template (optional).
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @return string The children wrapper template with %child% placeholder, or empty string.
 	 */

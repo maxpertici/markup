@@ -7,4 +7,6 @@
 # Exclude files from export
 /.gitattributes export-ignore
 /.gitignore export-ignore
+/docs export-ignore
+/examples export-ignore
 

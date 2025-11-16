@@ -15,7 +15,7 @@ use MaxPertici\Markup\MarkupElementInterface;
  * Provides common HTML tags with sensible defaults.
  * This is a built-in implementation of MarkupElementInterface.
  *
- * @since 1.2.0
+ * @since 1.0.0
  */
 enum HtmlTag: string implements MarkupElementInterface {
 
@@ -47,7 +47,7 @@ enum HtmlTag: string implements MarkupElementInterface {
 	/**
 	 * Gets the HTML wrapper template for this tag.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @return string The wrapper template.
 	 */
@@ -68,7 +68,7 @@ enum HtmlTag: string implements MarkupElementInterface {
 	/**
 	 * Gets the CSS classes for this tag.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @return array Array of CSS class names.
 	 */
@@ -80,7 +80,7 @@ enum HtmlTag: string implements MarkupElementInterface {
 	/**
 	 * Gets the HTML attributes for this tag.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @return array Associative array of attribute names and values.
 	 */
@@ -94,7 +94,7 @@ enum HtmlTag: string implements MarkupElementInterface {
 	/**
 	 * Gets the children wrapper template.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @return string The children wrapper template, or empty string.
 	 */

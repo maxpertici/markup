@@ -5,7 +5,7 @@
     "license": "MIT",
     "authors": [
         {
-            "name": "Max Pertici",
+            "name": "Maxime Pertici",
             "email": "hello@maxpertici.fr"
         }
     ],
@@ -15,7 +15,7 @@
         }
     },
     "require": {
-        "php": ">=8.0"
+        "php": ">=8.1"
     },
     "minimum-stability": "stable"
 }

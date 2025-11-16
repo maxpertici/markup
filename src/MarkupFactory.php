@@ -12,10 +12,10 @@ namespace MaxPertici\Markup;
  *
  * Factory class for creating Markup instances using convenient methods.
  * Provides two main creation patterns:
- * - fromString(): Quick creation of simple elements (first level only)
+ * - create(): Quick creation of elements with classes and attributes
  * - fromHtml(): Recursive parsing of HTML into complete Markup trees
  *
- * @since 1.1.0
+ * @since 1.0.0
  */
 class MarkupFactory {
 
@@ -36,7 +36,7 @@ class MarkupFactory {
 	 * $card = MarkupFactory::fromElement(MyComponent::CARD, [$header, $body]);
 	 * ```
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param MarkupElementInterface $element    The element configuration to use.
 	 * @param array                  $children   Optional. Children elements. Default empty array.
@@ -69,40 +69,33 @@ class MarkupFactory {
 	}
 
 	/**
-	 * Creates a simple Markup instance from basic parameters (first level only).
+	 * Creates a Markup instance from a tag name and parameters.
 	 *
-	 * This method creates a Markup with a single wrapper element containing
-	 * one string child. Perfect for quick element creation without nesting.
+	 * This is the primary method for creating custom HTML elements.
+	 * For common elements (div, span, p, etc.), consider using the helper methods instead.
 	 *
 	 * Example usage:
 	 * ```php
-	 * $div = MarkupFactory::fromString('div', 'Hello World', ['container'], ['id' => 'main']);
+	 * $div = MarkupFactory::create('div', ['container'], ['id' => 'main']);
+	 * $div->append('Hello World');
 	 * // Output: <div class="container" id="main">Hello World</div>
 	 * ```
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
-	 * @param string $tag        The HTML tag name (e.g., 'div', 'p', 'span').
-	 * @param string $content    Optional. The text content. Default empty string.
+	 * @param string $tag        The HTML tag name (e.g., 'div', 'p', 'span', 'article').
 	 * @param array  $classes    Optional. CSS classes. Default empty array.
 	 * @param array  $attributes Optional. HTML attributes (associative array). Default empty array.
 	 * @return Markup A new Markup instance.
 	 */
-	public static function fromString(
+	public static function create(
 		string $tag,
-		string $content = '',
 		array $classes = [],
 		array $attributes = []
 	): Markup {
 		$wrapper = sprintf( '<%s class="%%classes%%" %%attributes%%>%%children%%</%s>', $tag, $tag );
 
-		$markup = new Markup( $wrapper, $classes, $attributes );
-
-		if ( ! empty( $content ) ) {
-			$markup->children( $content );
-		}
-
-		return $markup;
+		return new Markup( $wrapper, $classes, $attributes );
 	}
 
 	/**
@@ -122,7 +115,7 @@ class MarkupFactory {
 	 * $markup = MarkupFactory::fromHtml($html, 3);
 	 * ```
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
 	 * @param string   $html          The HTML string to parse.
 	 * @param int|null $max_depth     Optional. Maximum parsing depth. Default null (unlimited).
@@ -187,7 +180,7 @@ class MarkupFactory {
 	 *
 	 * This is an optimized helper method that parses all attributes in a single pass.
 	 *
-	 * @since 1.3.0
+	 * @since 1.0.0
 	 *
 	 * @param string $attributes_string The HTML attributes string to parse.
 	 * @return array Array containing [classes array, attributes array].
@@ -220,7 +213,7 @@ class MarkupFactory {
 	 * This helper method splits HTML content into individual elements
 	 * and text nodes, parsing each one appropriately.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
 	 * @param string   $html          The HTML string to parse for children.
 	 * @param int|null $max_depth     Optional. Maximum parsing depth. Default null (unlimited).
@@ -239,33 +232,41 @@ class MarkupFactory {
 		$length = strlen( $html );
 
 		while ( $offset < $length ) {
-			// Try to find next opening tag
-			if ( preg_match( '/<(\w+)([^>]*)>/A', $html, $matches, 0, $offset ) ) {
-				$tag = $matches[1];
+			// Try to find next opening tag (search from current offset, not anchored)
+			if ( preg_match( '/<(\w+)([^>]*)>/', $html, $matches, PREG_OFFSET_CAPTURE, $offset ) ) {
+				$tag        = $matches[1][0];
+				$tag_start  = $matches[0][1];
+				$tag_string = $matches[0][0];
 
 				// Check if there's text before this tag
-				$tag_start = $offset;
-				
-				// No text before in this version since we use /A anchor
+				if ( $tag_start > $offset ) {
+					$text = substr( $html, $offset, $tag_start - $offset );
+					$text = trim( $text );
+					if ( ! empty( $text ) ) {
+						$children[] = $text;
+					}
+				}
 
-				// Find the closing tag
-				$tag_pos    = $tag_start;
-				$open_count = 1;
-				$search_pos = $tag_pos + strlen( $matches[0] );
+				// Check if it's a self-closing tag (ends with /> or is a void element)
+				$is_self_closing = preg_match( '/\/>$/', $tag_string );
+				$void_elements   = [ 'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr' ];
+				$is_void         = in_array( strtolower( $tag ), $void_elements, true );
 
-				// Check if it's a self-closing tag
-				if ( preg_match( '/\/>$/', $matches[0] ) ) {
-					// Self-closing tag
-					$element    = substr( $html, $tag_pos, strlen( $matches[0] ) );
+				if ( $is_self_closing || $is_void ) {
+					// Self-closing or void tag - parse as single element
+					$element    = $tag_string;
 					$children[] = self::fromHtml( $element, $max_depth, $current_depth );
-					$offset     = $search_pos;
+					$offset     = $tag_start + strlen( $tag_string );
 					continue;
 				}
 
 				// Find matching closing tag
+				$open_count = 1;
+				$search_pos = $tag_start + strlen( $tag_string );
+
 				while ( $open_count > 0 && $search_pos < $length ) {
-					// Look for any tag (opening or closing)
-					if ( preg_match( '/<(\/?)'.$tag.'(?:\s[^>]*)?>/', $html, $tag_match, PREG_OFFSET_CAPTURE, $search_pos ) ) {
+					// Look for any tag (opening or closing) with the same name
+					if ( preg_match( '/<(\/?)'.$tag.'(?:\s[^>]*)?>/i', $html, $tag_match, PREG_OFFSET_CAPTURE, $search_pos ) ) {
 						$is_closing = ! empty( $tag_match[1][0] );
 						$match_pos  = $tag_match[0][1];
 
@@ -273,10 +274,10 @@ class MarkupFactory {
 							--$open_count;
 							if ( 0 === $open_count ) {
 								// Found the matching closing tag
-								$element_length = $match_pos + strlen( $tag_match[0][0] ) - $tag_pos;
-								$element        = substr( $html, $tag_pos, $element_length );
+								$element_length = $match_pos + strlen( $tag_match[0][0] ) - $tag_start;
+								$element        = substr( $html, $tag_start, $element_length );
 								$children[]     = self::fromHtml( $element, $max_depth, $current_depth );
-								$offset         = $tag_pos + $element_length;
+								$offset         = $tag_start + $element_length;
 								break;
 							}
 						} else {
@@ -316,7 +317,7 @@ class MarkupFactory {
 	/**
 	 * Creates a div element.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param string $content    Optional. The text content. Default empty string.
 	 * @param array  $classes    Optional. CSS classes. Default empty array.
@@ -324,13 +325,17 @@ class MarkupFactory {
 	 * @return Markup A new Markup instance.
 	 */
 	public static function div( string $content = '', array $classes = [], array $attributes = [] ): Markup {
-		return self::fromString( 'div', $content, $classes, $attributes );
+		$markup = self::create( 'div', $classes, $attributes );
+		if ( ! empty( $content ) ) {
+			$markup->append( $content );
+		}
+		return $markup;
 	}
 
 	/**
 	 * Creates a span element.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param string $content    Optional. The text content. Default empty string.
 	 * @param array  $classes    Optional. CSS classes. Default empty array.
@@ -338,13 +343,17 @@ class MarkupFactory {
 	 * @return Markup A new Markup instance.
 	 */
 	public static function span( string $content = '', array $classes = [], array $attributes = [] ): Markup {
-		return self::fromString( 'span', $content, $classes, $attributes );
+		$markup = self::create( 'span', $classes, $attributes );
+		if ( ! empty( $content ) ) {
+			$markup->append( $content );
+		}
+		return $markup;
 	}
 
 	/**
 	 * Creates a paragraph element.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param string $content    Optional. The text content. Default empty string.
 	 * @param array  $classes    Optional. CSS classes. Default empty array.
@@ -352,13 +361,17 @@ class MarkupFactory {
 	 * @return Markup A new Markup instance.
 	 */
 	public static function p( string $content = '', array $classes = [], array $attributes = [] ): Markup {
-		return self::fromString( 'p', $content, $classes, $attributes );
+		$markup = self::create( 'p', $classes, $attributes );
+		if ( ! empty( $content ) ) {
+			$markup->append( $content );
+		}
+		return $markup;
 	}
 
 	/**
 	 * Creates a button element.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param string $content    Optional. The button label. Default empty string.
 	 * @param array  $classes    Optional. CSS classes. Default empty array.
@@ -370,13 +383,17 @@ class MarkupFactory {
 		if ( ! isset( $attributes['type'] ) ) {
 			$attributes['type'] = 'button';
 		}
-		return self::fromString( 'button', $content, $classes, $attributes );
+		$markup = self::create( 'button', $classes, $attributes );
+		if ( ! empty( $content ) ) {
+			$markup->append( $content );
+		}
+		return $markup;
 	}
 
 	/**
 	 * Creates a link element.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param string $href       The link URL.
 	 * @param string $text       Optional. The link text. Default empty string.
@@ -386,13 +403,17 @@ class MarkupFactory {
 	 */
 	public static function a( string $href, string $text = '', array $classes = [], array $attributes = [] ): Markup {
 		$attributes['href'] = $href;
-		return self::fromString( 'a', $text, $classes, $attributes );
+		$markup = self::create( 'a', $classes, $attributes );
+		if ( ! empty( $text ) ) {
+			$markup->append( $text );
+		}
+		return $markup;
 	}
 
 	/**
 	 * Creates a section element.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param string $content    Optional. The text content. Default empty string.
 	 * @param array  $classes    Optional. CSS classes. Default empty array.
@@ -400,13 +421,17 @@ class MarkupFactory {
 	 * @return Markup A new Markup instance.
 	 */
 	public static function section( string $content = '', array $classes = [], array $attributes = [] ): Markup {
-		return self::fromString( 'section', $content, $classes, $attributes );
+		$markup = self::create( 'section', $classes, $attributes );
+		if ( ! empty( $content ) ) {
+			$markup->append( $content );
+		}
+		return $markup;
 	}
 
 	/**
 	 * Creates an article element.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param string $content    Optional. The text content. Default empty string.
 	 * @param array  $classes    Optional. CSS classes. Default empty array.
@@ -414,13 +439,17 @@ class MarkupFactory {
 	 * @return Markup A new Markup instance.
 	 */
 	public static function article( string $content = '', array $classes = [], array $attributes = [] ): Markup {
-		return self::fromString( 'article', $content, $classes, $attributes );
+		$markup = self::create( 'article', $classes, $attributes );
+		if ( ! empty( $content ) ) {
+			$markup->append( $content );
+		}
+		return $markup;
 	}
 
 	/**
 	 * Creates a header element.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param string $content    Optional. The text content. Default empty string.
 	 * @param array  $classes    Optional. CSS classes. Default empty array.
@@ -428,13 +457,17 @@ class MarkupFactory {
 	 * @return Markup A new Markup instance.
 	 */
 	public static function header( string $content = '', array $classes = [], array $attributes = [] ): Markup {
-		return self::fromString( 'header', $content, $classes, $attributes );
+		$markup = self::create( 'header', $classes, $attributes );
+		if ( ! empty( $content ) ) {
+			$markup->append( $content );
+		}
+		return $markup;
 	}
 
 	/**
 	 * Creates a footer element.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param string $content    Optional. The text content. Default empty string.
 	 * @param array  $classes    Optional. CSS classes. Default empty array.
@@ -442,13 +475,17 @@ class MarkupFactory {
 	 * @return Markup A new Markup instance.
 	 */
 	public static function footer( string $content = '', array $classes = [], array $attributes = [] ): Markup {
-		return self::fromString( 'footer', $content, $classes, $attributes );
+		$markup = self::create( 'footer', $classes, $attributes );
+		if ( ! empty( $content ) ) {
+			$markup->append( $content );
+		}
+		return $markup;
 	}
 
 	/**
 	 * Creates a nav element.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param string $content    Optional. The text content. Default empty string.
 	 * @param array  $classes    Optional. CSS classes. Default empty array.
@@ -456,13 +493,17 @@ class MarkupFactory {
 	 * @return Markup A new Markup instance.
 	 */
 	public static function nav( string $content = '', array $classes = [], array $attributes = [] ): Markup {
-		return self::fromString( 'nav', $content, $classes, $attributes );
+		$markup = self::create( 'nav', $classes, $attributes );
+		if ( ! empty( $content ) ) {
+			$markup->append( $content );
+		}
+		return $markup;
 	}
 
 	/**
 	 * Creates an h1 heading element.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param string $content    Optional. The heading text. Default empty string.
 	 * @param array  $classes    Optional. CSS classes. Default empty array.
@@ -470,13 +511,17 @@ class MarkupFactory {
 	 * @return Markup A new Markup instance.
 	 */
 	public static function h1( string $content = '', array $classes = [], array $attributes = [] ): Markup {
-		return self::fromString( 'h1', $content, $classes, $attributes );
+		$markup = self::create( 'h1', $classes, $attributes );
+		if ( ! empty( $content ) ) {
+			$markup->append( $content );
+		}
+		return $markup;
 	}
 
 	/**
 	 * Creates an h2 heading element.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param string $content    Optional. The heading text. Default empty string.
 	 * @param array  $classes    Optional. CSS classes. Default empty array.
@@ -484,13 +529,17 @@ class MarkupFactory {
 	 * @return Markup A new Markup instance.
 	 */
 	public static function h2( string $content = '', array $classes = [], array $attributes = [] ): Markup {
-		return self::fromString( 'h2', $content, $classes, $attributes );
+		$markup = self::create( 'h2', $classes, $attributes );
+		if ( ! empty( $content ) ) {
+			$markup->append( $content );
+		}
+		return $markup;
 	}
 
 	/**
 	 * Creates an h3 heading element.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param string $content    Optional. The heading text. Default empty string.
 	 * @param array  $classes    Optional. CSS classes. Default empty array.
@@ -498,13 +547,17 @@ class MarkupFactory {
 	 * @return Markup A new Markup instance.
 	 */
 	public static function h3( string $content = '', array $classes = [], array $attributes = [] ): Markup {
-		return self::fromString( 'h3', $content, $classes, $attributes );
+		$markup = self::create( 'h3', $classes, $attributes );
+		if ( ! empty( $content ) ) {
+			$markup->append( $content );
+		}
+		return $markup;
 	}
 
 	/**
 	 * Creates an h4 heading element.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param string $content    Optional. The heading text. Default empty string.
 	 * @param array  $classes    Optional. CSS classes. Default empty array.
@@ -512,13 +565,17 @@ class MarkupFactory {
 	 * @return Markup A new Markup instance.
 	 */
 	public static function h4( string $content = '', array $classes = [], array $attributes = [] ): Markup {
-		return self::fromString( 'h4', $content, $classes, $attributes );
+		$markup = self::create( 'h4', $classes, $attributes );
+		if ( ! empty( $content ) ) {
+			$markup->append( $content );
+		}
+		return $markup;
 	}
 
 	/**
 	 * Creates an h5 heading element.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param string $content    Optional. The heading text. Default empty string.
 	 * @param array  $classes    Optional. CSS classes. Default empty array.
@@ -526,13 +583,17 @@ class MarkupFactory {
 	 * @return Markup A new Markup instance.
 	 */
 	public static function h5( string $content = '', array $classes = [], array $attributes = [] ): Markup {
-		return self::fromString( 'h5', $content, $classes, $attributes );
+		$markup = self::create( 'h5', $classes, $attributes );
+		if ( ! empty( $content ) ) {
+			$markup->append( $content );
+		}
+		return $markup;
 	}
 
 	/**
 	 * Creates an h6 heading element.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param string $content    Optional. The heading text. Default empty string.
 	 * @param array  $classes    Optional. CSS classes. Default empty array.
@@ -540,13 +601,17 @@ class MarkupFactory {
 	 * @return Markup A new Markup instance.
 	 */
 	public static function h6( string $content = '', array $classes = [], array $attributes = [] ): Markup {
-		return self::fromString( 'h6', $content, $classes, $attributes );
+		$markup = self::create( 'h6', $classes, $attributes );
+		if ( ! empty( $content ) ) {
+			$markup->append( $content );
+		}
+		return $markup;
 	}
 
 	/**
 	 * Creates an unordered list element.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param string $content    Optional. The text content. Default empty string.
 	 * @param array  $classes    Optional. CSS classes. Default empty array.
@@ -554,13 +619,17 @@ class MarkupFactory {
 	 * @return Markup A new Markup instance.
 	 */
 	public static function ul( string $content = '', array $classes = [], array $attributes = [] ): Markup {
-		return self::fromString( 'ul', $content, $classes, $attributes );
+		$markup = self::create( 'ul', $classes, $attributes );
+		if ( ! empty( $content ) ) {
+			$markup->append( $content );
+		}
+		return $markup;
 	}
 
 	/**
 	 * Creates an ordered list element.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param string $content    Optional. The text content. Default empty string.
 	 * @param array  $classes    Optional. CSS classes. Default empty array.
@@ -568,13 +637,17 @@ class MarkupFactory {
 	 * @return Markup A new Markup instance.
 	 */
 	public static function ol( string $content = '', array $classes = [], array $attributes = [] ): Markup {
-		return self::fromString( 'ol', $content, $classes, $attributes );
+		$markup = self::create( 'ol', $classes, $attributes );
+		if ( ! empty( $content ) ) {
+			$markup->append( $content );
+		}
+		return $markup;
 	}
 
 	/**
 	 * Creates a list item element.
 	 *
-	 * @since 1.2.0
+	 * @since 1.0.0
 	 *
 	 * @param string $content    Optional. The text content. Default empty string.
 	 * @param array  $classes    Optional. CSS classes. Default empty array.
@@ -582,7 +655,11 @@ class MarkupFactory {
 	 * @return Markup A new Markup instance.
 	 */
 	public static function li( string $content = '', array $classes = [], array $attributes = [] ): Markup {
-		return self::fromString( 'li', $content, $classes, $attributes );
+		$markup = self::create( 'li', $classes, $attributes );
+		if ( ! empty( $content ) ) {
+			$markup->append( $content );
+		}
+		return $markup;
 	}
 
 }

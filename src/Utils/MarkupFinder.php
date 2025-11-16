@@ -16,14 +16,14 @@ use MaxPertici\Markup\MarkupSlot;
  * Provides search functionality to find Markup elements based on various criteria
  * such as tags, classes, attributes, slugs, or custom callbacks.
  *
- * @since 1.3.0
+ * @since 1.0.0
  */
 class MarkupFinder {
 
 	/**
 	 * The root Markup instance to search in.
 	 *
-	 * @since 1.3.0
+	 * @since 1.0.0
 	 * @var Markup
 	 */
 	private Markup $root;
@@ -31,7 +31,7 @@ class MarkupFinder {
 	/**
 	 * Constructor.
 	 *
-	 * @since 1.3.0
+	 * @since 1.0.0
 	 *
 	 * @param Markup $markup The root Markup instance to search in.
 	 */
@@ -42,7 +42,7 @@ class MarkupFinder {
 	/**
 	 * Finds all Markup elements that match a CSS class.
 	 *
-	 * @since 1.3.0
+	 * @since 1.0.0
 	 *
 	 * @param string $class The CSS class to search for.
 	 * @param bool   $deep  Optional. Whether to search recursively. Default true.
@@ -60,7 +60,7 @@ class MarkupFinder {
 	/**
 	 * Finds all Markup elements that match an attribute.
 	 *
-	 * @since 1.3.0
+	 * @since 1.0.0
 	 *
 	 * @param string      $name  The attribute name.
 	 * @param string|null $value Optional. The attribute value to match. If null, just checks existence. Default null.
@@ -87,7 +87,7 @@ class MarkupFinder {
 	/**
 	 * Finds all Markup elements that match a slug.
 	 *
-	 * @since 1.3.0
+	 * @since 1.0.0
 	 *
 	 * @param string $slug The slug to search for.
 	 * @param bool   $deep Optional. Whether to search recursively. Default true.
@@ -108,7 +108,7 @@ class MarkupFinder {
 	 * This method extracts the tag name from the wrapper template
 	 * (e.g., '<div...>' will match 'div').
 	 *
-	 * @since 1.3.0
+	 * @since 1.0.0
 	 *
 	 * @param string $tag  The HTML tag to search for (e.g., 'div', 'span').
 	 * @param bool   $deep Optional. Whether to search recursively. Default true.
@@ -137,7 +137,7 @@ class MarkupFinder {
 	/**
 	 * Finds all Markup elements that match multiple classes (AND logic).
 	 *
-	 * @since 1.3.0
+	 * @since 1.0.0
 	 *
 	 * @param array $classes Array of CSS classes to match. Element must have all classes.
 	 * @param bool  $deep    Optional. Whether to search recursively. Default true.
@@ -169,7 +169,7 @@ class MarkupFinder {
 	 * });
 	 * ```
 	 *
-	 * @since 1.3.0
+	 * @since 1.0.0
 	 *
 	 * @param callable $callback The callback to test each Markup instance. Receives (Markup $markup).
 	 * @param bool     $deep     Optional. Whether to search recursively. Default true.
@@ -197,7 +197,7 @@ class MarkupFinder {
 	/**
 	 * Finds the first Markup element that matches a callback.
 	 *
-	 * @since 1.3.0
+	 * @since 1.0.0
 	 *
 	 * @param callable $callback The callback to test each Markup instance.
 	 * @param bool     $deep     Optional. Whether to search recursively. Default true.
@@ -226,7 +226,7 @@ class MarkupFinder {
 	/**
 	 * Gets all Markup instances in the tree (flattened).
 	 *
-	 * @since 1.3.0
+	 * @since 1.0.0
 	 *
 	 * @param bool $deep Optional. Whether to search recursively. Default true.
 	 * @return array Array of all Markup instances.
@@ -256,7 +256,7 @@ class MarkupFinder {
 	 * $markup->find()->css('header > nav:has(li.active) a'); // complex
 	 * ```
 	 *
-	 * @since 1.4.0
+	 * @since 1.0.0
 	 *
 	 * @param string $selector The CSS selector string.
 	 * @return array Array of matching Markup instances.
@@ -294,7 +294,7 @@ class MarkupFinder {
 	/**
 	 * Parses a CSS selector into segments with combinators.
 	 *
-	 * @since 1.4.0
+	 * @since 1.0.0
 	 *
 	 * @param string $selector The CSS selector string.
 	 * @return array Array of segments with combinators.
@@ -379,7 +379,7 @@ class MarkupFinder {
 	/**
 	 * Parses a single selector segment (e.g., "div.class[attr]:has(child)").
 	 *
-	 * @since 1.4.0
+	 * @since 1.0.0
 	 *
 	 * @param string $segment The selector segment.
 	 * @return array Parsed segment data.
@@ -438,7 +438,7 @@ class MarkupFinder {
 	/**
 	 * Searches with a selector chain recursively.
 	 *
-	 * @since 1.4.0
+	 * @since 1.0.0
 	 *
 	 * @param array  $segments The parsed selector segments.
 	 * @param int    $index    Current segment index.
@@ -490,7 +490,7 @@ class MarkupFinder {
 	/**
 	 * Finds elements matching a parsed segment.
 	 *
-	 * @since 1.4.0
+	 * @since 1.0.0
 	 *
 	 * @param array  $parsed The parsed segment.
 	 * @param Markup $root   The root to search from.
@@ -511,7 +511,7 @@ class MarkupFinder {
 	/**
 	 * Checks if a Markup element matches a parsed segment.
 	 *
-	 * @since 1.4.0
+	 * @since 1.0.0
 	 *
 	 * @param Markup $markup The Markup element to test.
 	 * @param array  $parsed The parsed segment data.
@@ -583,7 +583,7 @@ class MarkupFinder {
 	/**
 	 * Counts all Markup instances that match a callback.
 	 *
-	 * @since 1.3.0
+	 * @since 1.0.0
 	 *
 	 * @param callable $callback The callback to test each Markup instance.
 	 * @param bool     $deep     Optional. Whether to search recursively. Default true.
@@ -596,7 +596,7 @@ class MarkupFinder {
 	/**
 	 * Recursively searches in children array.
 	 *
-	 * @since 1.3.0
+	 * @since 1.0.0
 	 *
 	 * @param array    $children  The children array to search in.
 	 * @param callable $callback  The callback to test each Markup instance.
@@ -624,7 +624,7 @@ class MarkupFinder {
 	/**
 	 * Searches in slot content.
 	 *
-	 * @since 1.3.0
+	 * @since 1.0.0
 	 *
 	 * @param Markup   $markup   The Markup instance to search slots in.
 	 * @param callable $callback The callback to test each Markup instance.
@@ -664,7 +664,7 @@ class MarkupFinder {
 	/**
 	 * Finds the first matching Markup in children.
 	 *
-	 * @since 1.3.0
+	 * @since 1.0.0
 	 *
 	 * @param array    $children The children array to search in.
 	 * @param callable $callback The callback to test each Markup instance.
@@ -700,7 +700,7 @@ class MarkupFinder {
 	/**
 	 * Finds the first matching Markup in slots.
 	 *
-	 * @since 1.3.0
+	 * @since 1.0.0
 	 *
 	 * @param Markup   $markup   The Markup instance to search slots in.
 	 * @param callable $callback The callback to test each Markup instance.
