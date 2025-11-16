@@ -1,7 +1,9 @@
 # Markup
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![PHP Version](https://img.shields.io/badge/PHP-%3E%3D8.0-blue)](https://www.php.net/)
+[![PHP Version](https://img.shields.io/badge/PHP-%3E%3D8.1-blue)](https://www.php.net/)
+
+📚 **[Documentation complète](https://maxpertici.github.io/markup/)** | [Installation](https://maxpertici.github.io/markup/installation) | [Guide d'utilisation](https://maxpertici.github.io/markup/usage) | [API](https://maxpertici.github.io/markup/api) | [Exemples](https://maxpertici.github.io/markup/examples)
 
 > **⚠️ Disclaimer:** This README was written by an AI, but it has been *almost* reviewed by a human.
 
@@ -33,7 +35,7 @@ Perfect for building reusable UI components, generating dynamic HTML, or creatin
 
 ## Requirements
 
-- PHP 8.0 or higher
+- PHP 8.1 or higher
 
 ## Installation
 
@@ -60,31 +62,32 @@ use MaxPertici\Markup\MarkupFactory;
 
 **New in v1.1.0**: Create Markup instances quickly using the `MarkupFactory` class.
 
-#### `MarkupFactory::fromString()` - Simple Element Creation
+#### `MarkupFactory::create()` - Element Creation
 
-Create a wrapper element with content, classes, and attributes in one line:
+Create an element with classes and attributes, then append content:
 
 ```php
 use MaxPertici\Markup\MarkupFactory;
 
 // Create a simple div
-$div = MarkupFactory::fromString(
+$div = MarkupFactory::create(
     'div',                                    // tag name
-    'Hello World!',                           // content (string only)
     ['container', 'text-center'],             // CSS classes
     ['id' => 'main', 'data-test' => 'value'] // HTML attributes
 );
+$div->append('Hello World!');
 
 echo $div->render();
 // Output: <div class="container text-center" id="main" data-test="value">Hello World!</div>
 
 // Still fully chainable
-$paragraph = MarkupFactory::fromString('p', 'Initial content', ['paragraph'])
+$paragraph = MarkupFactory::create('p', ['paragraph'])
     ->addClass('text-bold')
-    ->setAttribute('role', 'note');
+    ->setAttribute('role', 'note')
+    ->append('Initial content');
 ```
 
-**Use case**: Perfect for quick element creation when you need a simple wrapper with a single text content.
+**Use case**: Perfect for element creation with full control over classes, attributes, and content.
 
 #### `MarkupFactory::fromHtml()` - Parse HTML Tree (Recursive)
 
@@ -121,7 +124,7 @@ echo $parsed->render();
 **Use case**: Parse existing HTML templates, convert HTML strings to Markup objects, or migrate from string-based HTML generation.
 
 **Key differences:**
-- `MarkupFactory::fromString()`: Creates simple wrapper (first level only) with single string content
+- `MarkupFactory::create()`: Creates element with classes/attributes, content added via append()
 - `MarkupFactory::fromHtml()`: Recursively parses entire HTML tree, preserving all nested structure
 
 ### Simple Example
@@ -226,17 +229,17 @@ $link->removeAttribute('target');
 
 The library provides two factory methods to create Markup instances from strings or HTML:
 
-#### `fromString()` - Simple Wrapper (First Level Only)
+#### `create()` - Element Creation
 
-Creates a simple wrapper with a tag, classes, attributes, and string content. The content is **not parsed** and remains as a single string child.
+Creates an element with a tag, classes, and attributes. Content can then be appended using the `append()` method.
 
 ```php
-$div = Markup::fromString(
-    tag: 'div',
-    content: 'This is <strong>HTML</strong> that will NOT be parsed',
-    classes: ['container', 'text-center'],
-    attributes: ['id' => 'main', 'data-type' => 'simple']
+$div = MarkupFactory::create(
+    'div',
+    ['container', 'text-center'],
+    ['id' => 'main', 'data-type' => 'simple']
 );
+$div->append('This is <strong>HTML</strong> that will NOT be parsed');
 
 echo $div->render();
 // Output: <div class="container text-center" id="main" data-type="simple">This is <strong>HTML</strong> that will NOT be parsed</div>
@@ -246,10 +249,10 @@ $div->addClass('bg-light')
     ->setAttribute('data-enhanced', 'true');
 ```
 
-**Use `fromString()` when:**
-- You need a simple wrapper around string content
+**Use `create()` when:**
+- You need to build elements programmatically
 - Performance is critical (3x faster than `fromHtml()`)
-- You don't need to parse or manipulate the inner HTML structure
+- You want full control over structure and content
 
 #### `fromHtml()` - Recursive Parsing
 
@@ -291,17 +294,17 @@ echo $parsed->render();
 $container = new Markup('<div class="container">%children%</div>');
 
 // Parse complex HTML
-$header = Markup::fromHtml('<header><h1>Title</h1><nav>...</nav></header>');
+$header = MarkupFactory::fromHtml('<header><h1>Title</h1><nav>...</nav></header>');
 
-// Create simple wrapper with string content
-$footer = Markup::fromString('footer', '© 2024 My Site', ['site-footer']);
+// Create simple element with string content
+$footer = MarkupFactory::create('footer', ['site-footer'])->append('© 2024 My Site');
 
 $container->children($header, $footer);
 ```
 
 #### Important Notes
 
-- `fromString()` is approximately **3x faster** than `fromHtml()`
+- `create()` is approximately **3x faster** than `fromHtml()`
 - `fromHtml()` uses PHP's DOMDocument, which may:
   - Remove some whitespace between elements
   - Convert self-closing tags (e.g., `<img />` becomes `<img></img>`)
@@ -1569,9 +1572,8 @@ Factory class for creating Markup instances.
 #### Static Methods
 
 ```php
-MarkupFactory::fromString(
+MarkupFactory::create(
     string $tag,
-    string $content = '',
     array $classes = [],
     array $attributes = []
 ): Markup
@@ -1586,7 +1588,7 @@ MarkupFactory::fromElement(
 ): Markup
 ```
 
-**`fromString()`** - Creates a Markup instance with a simple wrapper (first level only). Content is not parsed.
+**`create()`** - Creates a Markup instance with a tag, classes, and attributes. Use `append()` to add content.
 
 **`fromHtml()`** - Recursively parses HTML and creates a complete Markup tree. Optional `$max_depth` parameter limits parsing depth.
 
