@@ -1,8 +1,12 @@
 # GitHub Pages Configuration
 title: Markup
 description: A PHP library for building and manipulating HTML elements programmatically
-theme: jekyll-theme-cayman
+remote_theme: pages-themes/midnight@v0.2.0
 show_downloads: true
+
+# Plugins
+plugins:
+  - jekyll-remote-theme
 
 # GitHub repository
 repository: maxpertici/markup
