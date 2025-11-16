@@ -827,6 +827,216 @@ echo $list->render();
 
 ---
 
+## Extending the Markup Class
+
+The `Markup` class can be extended to create your own custom markup libraries with specialized components and behaviors. This allows you to:
+
+- **Create domain-specific markup libraries** for your application or framework
+- **Encapsulate common patterns** and components in reusable classes
+- **Add custom methods** specific to your use case
+- **Pre-configure default behaviors** for your components
+- **Build component libraries** with consistent styling and structure
+
+### Basic Extension Example
+
+```php
+namespace MyApp\Components;
+
+use MaxPertici\Markup\Markup;
+
+class Button extends Markup
+{
+    public function __construct(string $text = '', string $type = 'button')
+    {
+        parent::__construct(
+            wrapper: '<button class="%classes%" %attributes%>%children%</button>',
+            wrapper_class: ['btn'],
+            children: [$text]
+        );
+        
+        $this->setAttribute('type', $type);
+    }
+    
+    public function primary(): self
+    {
+        return $this->addClass('btn-primary');
+    }
+    
+    public function secondary(): self
+    {
+        return $this->addClass('btn-secondary');
+    }
+    
+    public function large(): self
+    {
+        return $this->addClass('btn-lg');
+    }
+    
+    public function small(): self
+    {
+        return $this->addClass('btn-sm');
+    }
+}
+
+// Usage
+$btn = new Button('Click me');
+$btn->primary()->large();
+echo $btn->render();
+// Output: <button class="btn btn-primary btn-lg" type="button">Click me</button>
+```
+
+### Advanced Component Library Example
+
+```php
+namespace MyApp\Components;
+
+use MaxPertici\Markup\Markup;
+use MaxPertici\Markup\MarkupSlot;
+
+class Card extends Markup
+{
+    public function __construct()
+    {
+        parent::__construct(
+            wrapper: '<div class="%classes%" %attributes%>%children%</div>',
+            wrapper_class: ['card']
+        );
+        
+        // Define slots for structured content
+        $this->children(
+            new MarkupSlot('header', '<div class="card-header">%slot%</div>'),
+            new MarkupSlot('body', '<div class="card-body">%slot%</div>'),
+            new MarkupSlot('footer', '<div class="card-footer">%slot%</div>')
+        );
+    }
+    
+    public function withShadow(): self
+    {
+        return $this->addClass('shadow-lg');
+    }
+    
+    public function bordered(): self
+    {
+        return $this->addClass('border');
+    }
+    
+    public function setHeader(mixed ...$content): self
+    {
+        return $this->slot('header', $content);
+    }
+    
+    public function setBody(mixed ...$content): self
+    {
+        return $this->slot('body', $content);
+    }
+    
+    public function setFooter(mixed ...$content): self
+    {
+        return $this->slot('footer', $content);
+    }
+}
+
+// Usage
+$card = new Card();
+$card->withShadow()
+     ->bordered()
+     ->setHeader('<h3>Card Title</h3>')
+     ->setBody('<p>Card content goes here</p>')
+     ->setFooter('<button class="btn">Action</button>');
+
+echo $card->render();
+```
+
+### Framework Integration Example
+
+```php
+namespace MyFramework\UI;
+
+use MaxPertici\Markup\Markup;
+
+abstract class Component extends Markup
+{
+    protected array $props = [];
+    
+    public function __construct(array $props = [])
+    {
+        $this->props = $props;
+        $this->init();
+        parent::__construct();
+        $this->build();
+    }
+    
+    /**
+     * Initialize component properties
+     */
+    protected function init(): void
+    {
+        // Override in child classes
+    }
+    
+    /**
+     * Build the component structure
+     */
+    abstract protected function build(): void;
+    
+    /**
+     * Get a prop value with default
+     */
+    protected function prop(string $key, mixed $default = null): mixed
+    {
+        return $this->props[$key] ?? $default;
+    }
+}
+
+// Example component using the framework
+class Alert extends Component
+{
+    protected function init(): void
+    {
+        $this->wrapper = '<div class="%classes%" %attributes%>%children%</div>';
+        $this->wrapper_class = ['alert'];
+    }
+    
+    protected function build(): void
+    {
+        $type = $this->prop('type', 'info');
+        $message = $this->prop('message', '');
+        $dismissible = $this->prop('dismissible', false);
+        
+        $this->addClass("alert-{$type}")
+             ->setAttribute('role', 'alert')
+             ->children($message);
+        
+        if ($dismissible) {
+            $this->addClass('alert-dismissible');
+            $closeBtn = new Markup(
+                '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>'
+            );
+            $this->children($closeBtn);
+        }
+    }
+}
+
+// Usage
+$alert = new Alert([
+    'type' => 'warning',
+    'message' => 'This is a warning message',
+    'dismissible' => true
+]);
+echo $alert->render();
+```
+
+### Benefits of Extending Markup
+
+1. **Type Safety**: Your IDE can provide autocompletion for custom methods
+2. **Consistency**: Enforce consistent patterns across your application
+3. **Reusability**: Create once, use everywhere
+4. **Maintainability**: Changes to component structure happen in one place
+5. **Documentation**: Self-documenting component APIs
+6. **Testing**: Easier to test isolated component behavior
+
+---
+
 ## Performance Notes
 
 ### Buffer vs Streaming Mode
