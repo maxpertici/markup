@@ -1,0 +1,20 @@
+# GitHub Pages Configuration
+title: Markup
+description: A PHP library for building and manipulating HTML elements programmatically
+theme: jekyll-theme-cayman
+show_downloads: true
+
+# GitHub repository
+repository: maxpertici/markup
+
+# Navigation
+nav_links:
+  - title: Home
+    url: /
+
+# Markdown settings
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
