@@ -2,7 +2,7 @@
 title: Markup
 description: A PHP library for building and manipulating HTML elements programmatically
 remote_theme: just-the-docs/just-the-docs
-color_scheme: dark
+color_scheme: light
 show_downloads: true
 
 # Plugins
