@@ -1,0 +1,874 @@
+---
+layout: default
+title: Markup
+nav_order: 3
+---
+
+# Markup Class
+{: .no_toc }
+
+The main class for programmatically building and manipulating HTML structures.
+{: .fs-6 .fw-300 }
+
+<details markdown="block">
+<summary>Table of Contents</summary>
+
+* TOC
+{:toc}
+
+</details>
+
+---
+
+## Overview
+
+The `Markup` class is the core of the library. It provides a fluent and chainable API for building complex HTML structures with support for:
+
+- **HTML Wrappers** - Templates with placeholders for content
+- **CSS Classes** - Dynamic class management
+- **HTML Attributes** - Complete attribute control
+- **Children** - Composition of nested elements
+- **Slots** - Named placeholder system
+- **Search** - Query the generated DOM tree
+- **Dual rendering mode** - Buffer or streaming
+
+## Constructor
+
+```php
+public function __construct(
+    string $wrapper = '',
+    array $wrapper_class = [],
+    array $wrapper_attributes = [],
+    string $children_wrapper = '',
+    array $children = []
+)
+```
+
+### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `$wrapper` | `string` | HTML template with `%children%` placeholder |
+| `$wrapper_class` | `array` | Array of CSS classes |
+| `$wrapper_attributes` | `array` | Associative array of HTML attributes |
+| `$children_wrapper` | `string` | HTML template with `%child%` placeholder to wrap each child |
+| `$children` | `array` | Array of initial children |
+
+### Examples
+
+```php
+use MaxPertici\Markup\Markup;
+
+// Simple creation
+$div = new Markup('<div>%children%</div>');
+
+// With classes and attributes
+$card = new Markup(
+    wrapper: '<div class="%classes%" %attributes%>%children%</div>',
+    wrapper_class: ['card', 'shadow'],
+    wrapper_attributes: ['id' => 'main-card', 'data-type' => 'product']
+);
+
+// With children wrapper
+$list = new Markup(
+    wrapper: '<ul>%children%</ul>',
+    children_wrapper: '<li>%child%</li>',
+    children: ['Item 1', 'Item 2', 'Item 3']
+);
+```
+
+---
+
+## Metadata
+
+### slug()
+
+Sets or retrieves the element's slug identifier.
+
+```php
+slug(?string $slug = null): self|string|null
+```
+
+**Examples:**
+
+```php
+// Set a slug
+$markup->slug('hero-section');
+
+// Get the slug
+$slug = $markup->slug(); // 'hero-section'
+
+// Chainable
+$markup->slug('header')->addClass('primary');
+```
+
+### description()
+
+Sets or retrieves an element description.
+
+```php
+description(?string $description = null): self|string|null
+```
+
+**Examples:**
+
+```php
+$markup->description('Main section with call-to-action');
+$desc = $markup->description(); // Retrieves the description
+```
+
+---
+
+## CSS Class Management
+
+### addClass()
+
+Adds one or more CSS classes to the wrapper.
+
+```php
+addClass(string|array ...$classes): self
+```
+
+**Examples:**
+
+```php
+// Single class
+$markup->addClass('active');
+
+// Multiple classes
+$markup->addClass('btn', 'btn-primary', 'btn-lg');
+
+// Array of classes
+$markup->addClass(['container', 'mx-auto']);
+
+// Mixed
+$markup->addClass('card', ['shadow', 'rounded']);
+```
+
+### removeClass()
+
+Removes one or more CSS classes.
+
+```php
+removeClass(string|array ...$classes): self
+```
+
+**Examples:**
+
+```php
+$markup->removeClass('active');
+$markup->removeClass('btn-primary', 'btn-lg');
+$markup->removeClass(['shadow', 'rounded']);
+```
+
+### hasClass()
+
+Checks if a class exists.
+
+```php
+hasClass(string $class): bool
+```
+
+**Examples:**
+
+```php
+if ($markup->hasClass('active')) {
+    // Class exists
+}
+```
+
+### classes()
+
+Retrieves or replaces all classes.
+
+```php
+classes(?array $classes = null): self|array
+```
+
+**Examples:**
+
+```php
+// Get classes
+$classes = $markup->classes();
+
+// Replace all classes
+$markup->classes(['new-class', 'another-class']);
+```
+
+---
+
+## HTML Attribute Management
+
+### setAttribute()
+
+Sets or removes an HTML attribute.
+
+```php
+setAttribute(string $name, ?string $value): self
+```
+
+**Examples:**
+
+```php
+// Set an attribute
+$markup->setAttribute('id', 'main-content');
+$markup->setAttribute('data-user-id', '123');
+$markup->setAttribute('role', 'navigation');
+
+// Remove an attribute (null value)
+$markup->setAttribute('disabled', null);
+```
+
+### removeAttribute()
+
+Removes an HTML attribute.
+
+```php
+removeAttribute(string $name): self
+```
+
+**Examples:**
+
+```php
+$markup->removeAttribute('disabled');
+$markup->removeAttribute('data-temp');
+```
+
+### hasAttribute()
+
+Checks if an attribute exists.
+
+```php
+hasAttribute(string $name): bool
+```
+
+**Examples:**
+
+```php
+if ($markup->hasAttribute('disabled')) {
+    // Attribute exists
+}
+```
+
+### getAttribute()
+
+Retrieves an attribute value.
+
+```php
+getAttribute(string $name): ?string
+```
+
+**Examples:**
+
+```php
+$id = $markup->getAttribute('id');
+$role = $markup->getAttribute('role');
+```
+
+### attributes()
+
+Retrieves or replaces all attributes.
+
+```php
+attributes(?array $attributes = null): self|array
+```
+
+**Examples:**
+
+```php
+// Get attributes
+$attrs = $markup->attributes();
+
+// Replace all attributes
+$markup->attributes([
+    'id' => 'new-id',
+    'class' => 'new-class',
+    'data-value' => 'test'
+]);
+```
+
+---
+
+## Children Management
+
+### children() / append()
+
+Adds children to the element.
+
+```php
+children(mixed ...$children): self
+append(mixed ...$children): self // Alias
+```
+
+Children can be:
+- Strings (HTML)
+- `Markup` instances
+- `MarkupSlot` instances
+- Callables (anonymous functions)
+- Arrays of elements
+
+**Examples:**
+
+```php
+// Strings
+$markup->children('Simple text');
+
+// Markup instances
+$markup->children(
+    new Markup('<h1>%children%</h1>', children: ['Title']),
+    new Markup('<p>%children%</p>', children: ['Paragraph'])
+);
+
+// Mixed
+$markup->children(
+    'Text',
+    new Markup('<div>%children%</div>'),
+    function() { echo 'From callback'; }
+);
+
+// Arrays
+$markup->children(['Item 1', 'Item 2', 'Item 3']);
+
+// Using append() alias
+$markup->append('More content');
+```
+
+### getChildren()
+
+Retrieves the children array.
+
+```php
+getChildren(): array
+```
+
+**Examples:**
+
+```php
+$children = $markup->getChildren();
+$count = count($children);
+```
+
+### setChildren()
+
+Completely replaces the children array.
+
+```php
+setChildren(array $children): self
+```
+
+**Examples:**
+
+```php
+$markup->setChildren([
+    'New child 1',
+    new Markup('<div>%children%</div>', children: ['New child 2'])
+]);
+```
+
+### orderChildren()
+
+Reorganizes children with a callback function.
+
+```php
+orderChildren(callable $callback): self
+```
+
+**Examples:**
+
+```php
+// Reverse order
+$markup->orderChildren(fn($children) => array_reverse($children));
+
+// Sort by custom criteria
+$markup->orderChildren(function($children) {
+    usort($children, function($a, $b) {
+        // Custom sorting logic
+        return 0;
+    });
+    return $children;
+});
+```
+
+---
+
+## Slot System
+
+Slots allow you to define named locations for content, similar to Vue.js or Laravel Blade.
+
+### slot()
+
+Adds content to a named slot.
+
+```php
+slot(string $name, mixed $items): self
+```
+
+**Examples:**
+
+```php
+// Add content to a slot
+$markup->slot('header', [
+    new Markup('<h1>%children%</h1>', children: ['My Site'])
+]);
+
+$markup->slot('content', [
+    '<p>Main content</p>',
+    new Markup('<div>%children%</div>', children: ['More content'])
+]);
+```
+
+### slots()
+
+Retrieves declared slots.
+
+```php
+slots(?array $names = null): array
+```
+
+**Examples:**
+
+```php
+// All slots
+$allSlots = $markup->slots();
+
+// Specific slots
+$selectedSlots = $markup->slots(['header', 'footer']);
+```
+
+### getSlot()
+
+Retrieves a specific slot by name.
+
+```php
+getSlot(string $name): ?MarkupSlot
+```
+
+**Examples:**
+
+```php
+$headerSlot = $markup->getSlot('header');
+if ($headerSlot) {
+    // Slot exists
+}
+```
+
+### hasSlot()
+
+Checks if a slot has been declared.
+
+```php
+hasSlot(string $name): bool
+```
+
+**Examples:**
+
+```php
+if ($markup->hasSlot('sidebar')) {
+    // Slot exists
+}
+```
+
+### isSlotFilled()
+
+Checks if a slot has been filled with content.
+
+```php
+isSlotFilled(string $name): bool
+```
+
+**Examples:**
+
+```php
+if ($markup->isSlotFilled('header')) {
+    // Slot contains content
+}
+```
+
+### slotNames()
+
+Retrieves the names of all declared slots.
+
+```php
+slotNames(): array
+```
+
+**Examples:**
+
+```php
+$names = $markup->slotNames();
+// ['header', 'content', 'footer', 'sidebar']
+```
+
+### filledSlotNames()
+
+Retrieves the names of slots that have been filled.
+
+```php
+filledSlotNames(): array
+```
+
+**Examples:**
+
+```php
+$filled = $markup->filledSlotNames();
+// ['header', 'content'] - filled slots only
+```
+
+### getSlotsInfo()
+
+Retrieves detailed information about all slots.
+
+```php
+getSlotsInfo(): array
+```
+
+**Examples:**
+
+```php
+$info = $markup->getSlotsInfo();
+/*
+[
+    'header' => [
+        'name' => 'header',
+        'description' => 'Page header',
+        'wrapper' => '<header>%slot%</header>',
+        'preserve' => false,
+        'filled' => true,
+        'items_count' => 2
+    ],
+    ...
+]
+*/
+```
+
+---
+
+## Conditional and Iterative Methods
+
+### when()
+
+Executes a callback if a condition is true.
+
+```php
+when(bool $condition, callable $callback): self
+```
+
+**Examples:**
+
+```php
+$isAdmin = true;
+
+$markup->when($isAdmin, function($m) {
+    $m->children('<div class="admin-panel">Admin Panel</div>');
+});
+
+// Chaining
+$markup
+    ->children('Content visible to all')
+    ->when($isAdmin, fn($m) => $m->children('Admin content'))
+    ->when($isLoggedIn, fn($m) => $m->addClass('authenticated'));
+```
+
+### each()
+
+Iterates over an array and executes a callback for each element.
+
+```php
+each(array $items, callable $callback): self
+```
+
+**Examples:**
+
+```php
+$users = [
+    ['name' => 'Alice', 'email' => 'alice@example.com'],
+    ['name' => 'Bob', 'email' => 'bob@example.com']
+];
+
+$list = new Markup('<ul>%children%</ul>');
+$list->each($users, function($user, $index, $markup) {
+    $markup->children(
+        new Markup(
+            '<li>%children%</li>',
+            children: [$user['name'] . ' - ' . $user['email']]
+        )
+    );
+});
+```
+
+---
+
+## Search and Query
+
+### find()
+
+Creates a `MarkupFinder` instance to search the tree.
+
+```php
+find(): MarkupFinder
+```
+
+**Examples:**
+
+```php
+// Search by class
+$elements = $markup->find()->findByClass('active');
+
+// Search by tag
+$divs = $markup->find()->findByTag('div');
+
+// Search by slug
+$header = $markup->find()->findBySlug('main-header');
+
+// Search by attribute
+$withRole = $markup->find()->findByAttribute('role', 'navigation');
+
+// CSS selector
+$navLinks = $markup->find()->css('nav a');
+$activeItems = $markup->find()->css('li.active');
+
+// Custom search
+$results = $markup->find()->search(function($m) {
+    return $m->hasClass('card') && $m->hasAttribute('data-id');
+});
+```
+
+See [MarkupFinder](markup-finder.html) for complete documentation.
+
+---
+
+## Rendering Methods
+
+### render()
+
+Generates and returns the HTML as a string.
+
+```php
+render(): string
+```
+
+**Examples:**
+
+```php
+$html = $markup->render();
+echo $html;
+
+// Or directly
+echo $markup->render();
+
+// Store for later use
+$cached = $markup->render();
+file_put_contents('cached.html', $cached);
+```
+
+**Use when:**
+- You need the HTML in a variable
+- You want to manipulate the HTML before display
+- You need to test or validate the HTML
+- You're returning HTML from a function
+
+### print()
+
+Directly outputs the HTML (streaming mode).
+
+```php
+print(): void
+```
+
+**Examples:**
+
+```php
+// Direct output
+$markup->print();
+
+// In a template
+<?php $header->print(); ?>
+```
+
+**Use when:**
+- Better performance for large documents
+- Reduced memory usage
+- Direct output in templates
+- Streaming responses
+
+---
+
+## Internal Accessors
+
+### getWrapper()
+
+Retrieves the element's wrapper template.
+
+```php
+getWrapper(): string
+```
+
+**Examples:**
+
+```php
+$wrapper = $markup->getWrapper();
+// '<div class="%classes%" %attributes%>%children%</div>'
+```
+
+This method is primarily used internally and by `MarkupFinder` to inspect elements.
+
+---
+
+## Template Placeholders
+
+### In the Wrapper
+
+| Placeholder | Description | Example |
+|------------|-------------|---------|
+| `%children%` | Children location | `<div>%children%</div>` |
+| `%classes%` | CSS classes | `<div class="%classes%">` |
+| `%attributes%` | HTML attributes | `<div %attributes%>` |
+
+### In the Children Wrapper
+
+| Placeholder | Description | Example |
+|------------|-------------|---------|
+| `%child%` | Each child individually | `<li>%child%</li>` |
+
+### In the Slot Wrapper
+
+| Placeholder | Description | Example |
+|------------|-------------|---------|
+| `%slot%` | Slot content | `<header>%slot%</header>` |
+
+---
+
+## Practical Examples
+
+### Reusable Card Component
+
+```php
+function createCard(string $title, string $content, ?string $imageUrl = null): Markup
+{
+    $card = new Markup(
+        wrapper: '<div class="%classes%">%children%</div>',
+        wrapper_class: ['card', 'shadow-lg']
+    );
+    
+    if ($imageUrl) {
+        $img = new Markup('<img %attributes% />');
+        $img->setAttribute('src', $imageUrl)
+            ->setAttribute('alt', $title)
+            ->addClass('card-img-top');
+        $card->children($img);
+    }
+    
+    $body = new Markup(
+        wrapper: '<div class="card-body">%children%</div>',
+        children: [
+            new Markup('<h5 class="card-title">%children%</h5>', children: [$title]),
+            new Markup('<p class="card-text">%children%</p>', children: [$content])
+        ]
+    );
+    
+    $card->children($body);
+    
+    return $card;
+}
+
+// Usage
+$card = createCard('My Title', 'My content', '/image.jpg');
+echo $card->render();
+```
+
+### Layout with Slots
+
+```php
+// Define the layout
+$layout = new Markup('<div class="app">%children%</div>');
+$layout->children(
+    new MarkupSlot('header', '<header class="app-header">%slot%</header>'),
+    new MarkupSlot('content', '<main class="app-content">%slot%</main>'),
+    new MarkupSlot('footer', '<footer class="app-footer">%slot%</footer>')
+);
+
+// Fill the slots
+$layout
+    ->slot('header', [
+        new Markup('<h1>%children%</h1>', children: ['My Application'])
+    ])
+    ->slot('content', [
+        new Markup('<p>%children%</p>', children: ['Main content'])
+    ])
+    ->slot('footer', [
+        '<p>&copy; 2024 My Application</p>'
+    ]);
+
+$layout->print();
+```
+
+### Dynamic List
+
+```php
+$users = [
+    ['id' => 1, 'name' => 'Alice', 'role' => 'Admin'],
+    ['id' => 2, 'name' => 'Bob', 'role' => 'User'],
+    ['id' => 3, 'name' => 'Charlie', 'role' => 'User']
+];
+
+$list = new Markup('<ul class="user-list">%children%</ul>');
+$list->each($users, function($user, $index, $markup) {
+    $li = new Markup('<li class="%classes%">%children%</li>');
+    $li->setAttribute('data-user-id', (string)$user['id'])
+       ->addClass('user-item')
+       ->when($user['role'] === 'Admin', fn($m) => $m->addClass('admin'))
+       ->children($user['name'] . ' - ' . $user['role']);
+    
+    $markup->children($li);
+});
+
+echo $list->render();
+```
+
+---
+
+## Performance Notes
+
+### Buffer vs Streaming Mode
+
+```php
+// Buffer (render) - Keeps everything in memory
+$html = $markup->render(); // ~5MB in memory
+echo $html;
+
+// Streaming (print) - Direct output
+$markup->print(); // ~0.5MB in memory
+```
+
+**Recommendations:**
+- Use `render()` for small documents or when you need to manipulate the HTML
+- Use `print()` for large documents or full pages
+- `print()` is approximately 2x faster for documents over 100KB
+
+### Children Optimization
+
+```php
+// ❌ Less performant - creates many objects
+$list->children(
+    new Markup('<li>%children%</li>', children: ['Item 1']),
+    new Markup('<li>%children%</li>', children: ['Item 2']),
+    new Markup('<li>%children%</li>', children: ['Item 3'])
+);
+
+// ✅ More performant - uses children_wrapper
+$list = new Markup(
+    wrapper: '<ul>%children%</ul>',
+    children_wrapper: '<li>%child%</li>',
+    children: ['Item 1', 'Item 2', 'Item 3']
+);
+```
+
+---
+
+## See Also
+
+- [MarkupFactory](markup-factory.html) - Quick creation methods
+- [MarkupSlot](markup-slot.html) - Slot system
+- [MarkupFinder](markup-finder.html) - Search and query
+- [Getting Started](getting-start.html) - Introduction and first steps
+
