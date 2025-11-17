@@ -58,7 +58,7 @@ class Markup implements MarkupInterface {
 	 * @since 1.0.0
 	 * @var array
 	 */
-	protected array $wrapper_class = [];
+	protected array $wrapperClass = [];
 
 	/**
 	 * HTML attributes for the wrapper element.
@@ -66,7 +66,7 @@ class Markup implements MarkupInterface {
 	 * @since 1.0.0
 	 * @var array
 	 */
-	protected array $wrapper_attributes = [];
+	protected array $wrapperAttributes = [];
 
 	/**
 	 * The children wrapper HTML template with %child% placeholder.
@@ -74,7 +74,7 @@ class Markup implements MarkupInterface {
 	 * @since 1.0.0
 	 * @var string
 	 */
-	protected string $children_wrapper = '';
+	protected string $childrenWrapper = '';
 
 	/**
 	 * Array of child elements (strings, Markup instances, or callables).
@@ -90,7 +90,7 @@ class Markup implements MarkupInterface {
 	 * @since 1.0.0
 	 * @var array<string, MarkupSlot>
 	 */
-	protected array $declared_slots = [];
+	protected array $declaredSlots = [];
 
 	/**
 	 * Array of slot content keyed by slot name.
@@ -98,7 +98,7 @@ class Markup implements MarkupInterface {
 	 * @since 1.0.0
 	 * @var array<string, array>
 	 */
-	protected array $slots_content = [];
+	protected array $slotsContent = [];
 
 	/**
 	 * Whether to output content directly or store it.
@@ -113,23 +113,23 @@ class Markup implements MarkupInterface {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param string $wrapper             Optional. The wrapper HTML template. Default empty string.
-	 * @param array  $wrapper_class       Optional. CSS classes for the wrapper. Default empty array.
-	 * @param array  $wrapper_attributes  Optional. HTML attributes for the wrapper. Default empty array.
-	 * @param string $children_wrapper    Optional. The children wrapper HTML template. Default empty string.
-	 * @param array  $children            Optional. Array of child elements. Default empty array.
+	 * @param string $wrapper            Optional. The wrapper HTML template. Default empty string.
+	 * @param array  $wrapperClass       Optional. CSS classes for the wrapper. Default empty array.
+	 * @param array  $wrapperAttributes  Optional. HTML attributes for the wrapper. Default empty array.
+	 * @param string $childrenWrapper    Optional. The children wrapper HTML template. Default empty string.
+	 * @param array  $children           Optional. Array of child elements. Default empty array.
 	 */
 	public function __construct(
 		string $wrapper = '',
-		array $wrapper_class = [],
-		array $wrapper_attributes = [],
-		string $children_wrapper = '',
+		array $wrapperClass = [],
+		array $wrapperAttributes = [],
+		string $childrenWrapper = '',
 		array $children = [],
 	) {
 		$this->wrapper            = $wrapper;
-		$this->wrapper_class      = $wrapper_class;
-		$this->wrapper_attributes = $wrapper_attributes;
-		$this->children_wrapper   = $children_wrapper;
+		$this->wrapperClass       = $wrapperClass;
+		$this->wrapperAttributes  = $wrapperAttributes;
+		$this->childrenWrapper    = $childrenWrapper;
 		$this->children           = $children;
 	}
 
@@ -201,13 +201,13 @@ class Markup implements MarkupInterface {
 		foreach ( $classes as $class ) {
 			if ( is_array( $class ) ) {
 				foreach ( $class as $c ) {
-					if ( ! in_array( $c, $this->wrapper_class, true ) ) {
-						$this->wrapper_class[] = $c;
+					if ( ! in_array( $c, $this->wrapperClass, true ) ) {
+						$this->wrapperClass[] = $c;
 					}
 				}
 			} else {
-				if ( ! in_array( $class, $this->wrapper_class, true ) ) {
-					$this->wrapper_class[] = $class;
+				if ( ! in_array( $class, $this->wrapperClass, true ) ) {
+					$this->wrapperClass[] = $class;
 				}
 			}
 		}
@@ -229,14 +229,14 @@ class Markup implements MarkupInterface {
 		foreach ( $classes as $class ) {
 			if ( is_array( $class ) ) {
 				foreach ( $class as $c ) {
-					$this->wrapper_class = array_diff( $this->wrapper_class, array( $c ) );
+					$this->wrapperClass = array_diff( $this->wrapperClass, array( $c ) );
 				}
 			} else {
-				$this->wrapper_class = array_diff( $this->wrapper_class, array( $class ) );
+				$this->wrapperClass = array_diff( $this->wrapperClass, array( $class ) );
 			}
 		}
 		// Re-index array to avoid gaps in numeric keys
-		$this->wrapper_class = array_values( $this->wrapper_class );
+		$this->wrapperClass = array_values( $this->wrapperClass );
 		return $this;
 	}
 
@@ -249,7 +249,7 @@ class Markup implements MarkupInterface {
 	 * @return bool True if the class exists, false otherwise.
 	 */
 	public function hasClass( string $class ): bool {
-		return in_array( $class, $this->wrapper_class, true );
+		return in_array( $class, $this->wrapperClass, true );
 	}
 
 	/**
@@ -266,10 +266,10 @@ class Markup implements MarkupInterface {
 	 */
 	public function classes( ?array $classes = null ) {
 		if ( null === $classes ) {
-			return $this->wrapper_class;
+			return $this->wrapperClass;
 		}
 
-		$this->wrapper_class = array_values( array_unique( $classes ) );
+		$this->wrapperClass = array_values( array_unique( $classes ) );
 		return $this;
 	}
 
@@ -287,9 +287,9 @@ class Markup implements MarkupInterface {
 	 */
 	public function setAttribute( string $name, ?string $value ): self {
 		if ( null === $value ) {
-			unset( $this->wrapper_attributes[ $name ] );
+			unset( $this->wrapperAttributes[ $name ] );
 		} else {
-			$this->wrapper_attributes[ $name ] = $value;
+			$this->wrapperAttributes[ $name ] = $value;
 		}
 		return $this;
 	}
@@ -303,7 +303,7 @@ class Markup implements MarkupInterface {
 	 * @return self Returns $this for method chaining.
 	 */
 	public function removeAttribute( string $name ): self {
-		unset( $this->wrapper_attributes[ $name ] );
+		unset( $this->wrapperAttributes[ $name ] );
 		return $this;
 	}
 
@@ -316,7 +316,7 @@ class Markup implements MarkupInterface {
 	 * @return bool True if the attribute exists, false otherwise.
 	 */
 	public function hasAttribute( string $name ): bool {
-		return isset( $this->wrapper_attributes[ $name ] );
+		return isset( $this->wrapperAttributes[ $name ] );
 	}
 
 	/**
@@ -328,7 +328,7 @@ class Markup implements MarkupInterface {
 	 * @return string|null The attribute value or null if not set.
 	 */
 	public function getAttribute( string $name ): ?string {
-		return $this->wrapper_attributes[ $name ] ?? null;
+		return $this->wrapperAttributes[ $name ] ?? null;
 	}
 
 	/**
@@ -345,10 +345,10 @@ class Markup implements MarkupInterface {
 	 */
 	public function attributes( ?array $attributes = null ) {
 		if ( null === $attributes ) {
-			return $this->wrapper_attributes;
+			return $this->wrapperAttributes;
 		}
 
-		$this->wrapper_attributes = $attributes;
+		$this->wrapperAttributes = $attributes;
 		return $this;
 	}
 
@@ -420,8 +420,8 @@ class Markup implements MarkupInterface {
 	 */
 	public function setChildren( array $children ): self {
 		// Reset children and declared slots
-		$this->children       = [];
-		$this->declared_slots = [];
+		$this->children      = [];
+		$this->declaredSlots = [];
 
 		// Add each item, registering Slots as we go
 		foreach ( $children as $child ) {
@@ -463,7 +463,7 @@ class Markup implements MarkupInterface {
 	private function addChildItem( $item ): void {
 		// If it's a MarkupSlot object, register it
 		if ( $item instanceof MarkupSlot ) {
-			$this->declared_slots[ $item->name() ] = $item;
+			$this->declaredSlots[ $item->name() ] = $item;
 		}
 
 		// Add to children array
@@ -484,11 +484,11 @@ class Markup implements MarkupInterface {
 	 */
 	public function slots( ?array $names = null ): array {
 		if ( null === $names ) {
-			return $this->declared_slots;
+			return $this->declaredSlots;
 		}
 
 		return array_filter(
-			$this->declared_slots,
+			$this->declaredSlots,
 			fn( $key ) => in_array( $key, $names, true ),
 			ARRAY_FILTER_USE_KEY
 		);
@@ -503,7 +503,7 @@ class Markup implements MarkupInterface {
 	 * @return MarkupSlot|null The MarkupSlot object if found, null otherwise.
 	 */
 	public function getSlot( string $name ): ?MarkupSlot {
-		return $this->declared_slots[ $name ] ?? null;
+		return $this->declaredSlots[ $name ] ?? null;
 	}
 
 	/**
@@ -521,8 +521,8 @@ class Markup implements MarkupInterface {
 	 */
 	public function slot( string $name, $items ): self {
 		// Initialize slot content array if not exists
-		if ( ! isset( $this->slots_content[ $name ] ) ) {
-			$this->slots_content[ $name ] = [];
+		if ( ! isset( $this->slotsContent[ $name ] ) ) {
+			$this->slotsContent[ $name ] = [];
 		}
 
 		// If items is an array, add each element
@@ -550,10 +550,10 @@ class Markup implements MarkupInterface {
 	private function addSlotItem( string $name, $item ): void {
 		// Register MarkupSlot objects if they're being added as slot content
 		if ( $item instanceof MarkupSlot ) {
-			$this->declared_slots[ $item->name() ] = $item;
+			$this->declaredSlots[ $item->name() ] = $item;
 		}
 
-		$this->slots_content[ $name ][] = $item;
+		$this->slotsContent[ $name ][] = $item;
 	}
 
 	/**
@@ -566,7 +566,7 @@ class Markup implements MarkupInterface {
 	 * @return array Array of declared slot names.
 	 */
 	public function slotNames(): array {
-		return array_keys( $this->declared_slots );
+		return array_keys( $this->declaredSlots );
 	}
 
 	/**
@@ -579,7 +579,7 @@ class Markup implements MarkupInterface {
 	public function filledSlotNames(): array {
 		$filled = [];
 
-		foreach ( $this->slots_content as $name => $items ) {
+		foreach ( $this->slotsContent as $name => $items ) {
 			if ( ! empty( $items ) ) {
 				$filled[] = $name;
 			}
@@ -597,7 +597,7 @@ class Markup implements MarkupInterface {
 	 * @return bool True if the slot has been declared, false otherwise.
 	 */
 	public function hasSlot( string $name ): bool {
-		return isset( $this->declared_slots[ $name ] );
+		return isset( $this->declaredSlots[ $name ] );
 	}
 
 	/**
@@ -609,7 +609,7 @@ class Markup implements MarkupInterface {
 	 * @return bool True if the slot has been filled, false otherwise.
 	 */
 	public function isSlotFilled( string $name ): bool {
-		return isset( $this->slots_content[ $name ] ) && ! empty( $this->slots_content[ $name ] );
+		return isset( $this->slotsContent[ $name ] ) && ! empty( $this->slotsContent[ $name ] );
 	}
 
 	/**
@@ -625,11 +625,11 @@ class Markup implements MarkupInterface {
 	public function getSlotsInfo(): array {
 		$info = [];
 
-		foreach ( $this->declared_slots as $name => $slot ) {
-			$slot_info                = $slot->toArray();
-			$slot_info['filled']      = $this->isSlotFilled( $name );
-			$slot_info['items_count'] = isset( $this->slots_content[ $name ] ) ? count( $this->slots_content[ $name ] ) : 0;
-			$info[ $name ]            = $slot_info;
+		foreach ( $this->declaredSlots as $name => $slot ) {
+			$slotInfo                = $slot->toArray();
+			$slotInfo['filled']      = $this->isSlotFilled( $name );
+			$slotInfo['items_count'] = isset( $this->slotsContent[ $name ] ) ? count( $this->slotsContent[ $name ] ) : 0;
+			$info[ $name ]           = $slotInfo;
 		}
 
 		return $info;
@@ -870,22 +870,22 @@ class Markup implements MarkupInterface {
 	 * @return string The wrapper opening HTML tag.
 	 */
 	private function wrapperOpenerTag(): string {
-		$children_wrap = explode( '%children%', (string) $this->wrapper );
-		$opener        = $children_wrap[0];
+		$childrenWrap = explode( '%children%', (string) $this->wrapper );
+		$opener       = $childrenWrap[0];
 
-		$opener = str_replace( '%classes%', implode( ' ', $this->wrapper_class ), $opener );
+		$opener = str_replace( '%classes%', implode( ' ', $this->wrapperClass ), $opener );
 
 		// Build attributes string
-		if ( ! empty( $this->wrapper_attributes ) ) {
+		if ( ! empty( $this->wrapperAttributes ) ) {
 			$attributes = [];
-			foreach ( $this->wrapper_attributes as $attribute => $value ) {
+			foreach ( $this->wrapperAttributes as $attribute => $value ) {
 				$attributes[] = $attribute . '="' . $value . '"';
 			}
-			$attributes_str = ' ' . implode( ' ', $attributes );
+			$attributesStr = ' ' . implode( ' ', $attributes );
 		} else {
-			$attributes_str = '';
+			$attributesStr = '';
 		}
-		$opener = str_replace( '%attributes%', $attributes_str, $opener );
+		$opener = str_replace( '%attributes%', $attributesStr, $opener );
 
 		// Clean up empty attributes (e.g., class="")
 		$opener = preg_replace( '/\s+class=""/', '', $opener );
@@ -922,7 +922,7 @@ class Markup implements MarkupInterface {
 	 * @return string The children wrapper opening HTML tag.
 	 */
 	private function childrenOpenerTag(): string {
-		$container = explode( '%child%', (string) $this->children_wrapper );
+		$container = explode( '%child%', (string) $this->childrenWrapper );
 		$opener    = $container[0];
 		return $opener;
 	}
@@ -935,10 +935,10 @@ class Markup implements MarkupInterface {
 	 * @return string The children wrapper closing HTML tag.
 	 */
 	private function childrenCloserTag(): string {
-		$closer        = '';
-		$children_wrap = explode( '%child%', (string) $this->children_wrapper );
-		if ( isset( $children_wrap[1] ) ) {
-			$closer = $children_wrap[1];
+		$closer       = '';
+		$childrenWrap = explode( '%child%', (string) $this->childrenWrapper );
+		if ( isset( $childrenWrap[1] ) ) {
+			$closer = $childrenWrap[1];
 		}
 		return $closer;
 	}
@@ -952,12 +952,12 @@ class Markup implements MarkupInterface {
 	 * @return string The rendered slot content with wrapper if applicable.
 	 */
 	private function renderSlot( MarkupSlot $slot ): string {
-		$name        = $slot->name();
-		$has_content = isset( $this->slots_content[ $name ] ) && ! empty( $this->slots_content[ $name ] );
-		$wrapper     = $slot->wrapper();
+		$name       = $slot->name();
+		$hasContent = isset( $this->slotsContent[ $name ] ) && ! empty( $this->slotsContent[ $name ] );
+		$wrapper    = $slot->wrapper();
 
 		// Check if we should render anything
-		if ( ! $has_content && ! $slot->isPreserved() ) {
+		if ( ! $hasContent && ! $slot->isPreserved() ) {
 			return '';
 		}
 
@@ -965,13 +965,13 @@ class Markup implements MarkupInterface {
 		if ( $this->streaming ) {
 			// Output opening wrapper
 			if ( ! empty( $wrapper ) ) {
-				$wrapper_parts = explode( '%slot%', $wrapper );
-				$this->output( $wrapper_parts[0] );
+				$wrapperParts = explode( '%slot%', $wrapper );
+				$this->output( $wrapperParts[0] );
 			}
 
 		// Render all items in the slot
-		if ( $has_content ) {
-			foreach ( $this->slots_content[ $name ] as $item ) {
+		if ( $hasContent ) {
+			foreach ( $this->slotsContent[ $name ] as $item ) {
 				if ( $item instanceof Markup ) {
 					$item->print();
 				} elseif ( $item instanceof MarkupSlot ) {
@@ -979,8 +979,8 @@ class Markup implements MarkupInterface {
 					$this->renderSlot( $item );
 				} elseif ( $item instanceof MarkupFlow ) {
 					// Render all items in the flow
-					foreach ( $item->items() as $group_item ) {
-						$this->renderItem( $group_item );
+					foreach ( $item->items() as $groupItem ) {
+						$this->renderItem( $groupItem );
 					}
 				} elseif ( is_string( $item ) ) {
 					// Check strings first to avoid treating function names as callables
@@ -992,8 +992,8 @@ class Markup implements MarkupInterface {
 		}
 
 			// Output closing wrapper
-			if ( ! empty( $wrapper ) && isset( $wrapper_parts[1] ) ) {
-				$this->output( $wrapper_parts[1] );
+			if ( ! empty( $wrapper ) && isset( $wrapperParts[1] ) ) {
+				$this->output( $wrapperParts[1] );
 			}
 
 			return '';
@@ -1003,8 +1003,8 @@ class Markup implements MarkupInterface {
 		$content = '';
 
 	// Render all items in the slot if there's content
-	if ( $has_content ) {
-		foreach ( $this->slots_content[ $name ] as $item ) {
+	if ( $hasContent ) {
+		foreach ( $this->slotsContent[ $name ] as $item ) {
 			if ( $item instanceof Markup ) {
 				$content .= $item->render();
 			} elseif ( $item instanceof MarkupSlot ) {
@@ -1012,14 +1012,14 @@ class Markup implements MarkupInterface {
 				$content .= $this->renderSlot( $item );
 			} elseif ( $item instanceof MarkupFlow ) {
 				// Render all items in the flow
-				foreach ( $item->items() as $group_item ) {
-					if ( $group_item instanceof Markup ) {
-						$content .= $group_item->render();
-					} elseif ( is_string( $group_item ) ) {
-						$content .= $group_item;
-					} elseif ( is_callable( $group_item ) ) {
+				foreach ( $item->items() as $groupItem ) {
+					if ( $groupItem instanceof Markup ) {
+						$content .= $groupItem->render();
+					} elseif ( is_string( $groupItem ) ) {
+						$content .= $groupItem;
+					} elseif ( is_callable( $groupItem ) ) {
 						ob_start();
-						call_user_func( $group_item );
+						call_user_func( $groupItem );
 						$content .= ob_get_clean();
 					}
 				}

@@ -657,10 +657,10 @@ $list->append('<li>Item 1</li>')
      ->append('<li>Item 2</li>')
      ->append('<li>Item 3</li>');
 
-// Better approach with children_wrapper
+// Better approach with childrenWrapper
 $list = new Markup(
     wrapper: '<ul class="nav-list">%children%</ul>',
-    children_wrapper: '<li>%child%</li>',
+    childrenWrapper: '<li>%child%</li>',
     children: ['Item 1', 'Item 2', 'Item 3']
 );
 ```

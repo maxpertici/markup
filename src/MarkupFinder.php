@@ -639,16 +639,16 @@ class MarkupFinder {
 		$slots = $markup->slots();
 
 		foreach ( $slots as $slot ) {
-			// Get slot content using reflection since slots_content is private
-			$reflection       = new \ReflectionClass( $markup );
-			$property         = $reflection->getProperty( 'slots_content' );
+			// Get slot content using reflection since slotsContent is private
+			$reflection    = new \ReflectionClass( $markup );
+			$property      = $reflection->getProperty( 'slotsContent' );
 			$property->setAccessible( true );
-			$slots_content = $property->getValue( $markup );
+			$slotsContent = $property->getValue( $markup );
 
-			$slot_name = $slot->name();
+			$slotName = $slot->name();
 
-		if ( isset( $slots_content[ $slot_name ] ) ) {
-			foreach ( $slots_content[ $slot_name ] as $item ) {
+		if ( isset( $slotsContent[ $slotName ] ) ) {
+			foreach ( $slotsContent[ $slotName ] as $item ) {
 				// If it's a MarkupFlow, search in its items
 				if ( $item instanceof MarkupFlow ) {
 					$this->searchInChildren( $item->items(), $callback, true, $results );
@@ -723,15 +723,15 @@ class MarkupFinder {
 
 		foreach ( $slots as $slot ) {
 			// Get slot content using reflection
-			$reflection       = new \ReflectionClass( $markup );
-			$property         = $reflection->getProperty( 'slots_content' );
+			$reflection    = new \ReflectionClass( $markup );
+			$property      = $reflection->getProperty( 'slotsContent' );
 			$property->setAccessible( true );
-			$slots_content = $property->getValue( $markup );
+			$slotsContent = $property->getValue( $markup );
 
-			$slot_name = $slot->name();
+			$slotName = $slot->name();
 
-		if ( isset( $slots_content[ $slot_name ] ) ) {
-			foreach ( $slots_content[ $slot_name ] as $item ) {
+		if ( isset( $slotsContent[ $slotName ] ) ) {
+			foreach ( $slotsContent[ $slotName ] as $item ) {
 				// If it's a MarkupFlow, search in its items
 				if ( $item instanceof MarkupFlow ) {
 					$result = $this->findFirstInChildren( $item->items(), $callback, true );

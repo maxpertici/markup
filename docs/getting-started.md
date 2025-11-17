@@ -125,7 +125,7 @@ use MaxPertici\Markup\MarkupFlow;
 
 $nav = new Markup(
     wrapper: '<ul>%children%</ul>',
-    children_wrapper: '<li>%child%</li>',
+    childrenWrapper: '<li>%child%</li>',
     children: [
         'Home',
         'About',

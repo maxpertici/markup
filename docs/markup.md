@@ -37,9 +37,9 @@ The `Markup` class is the core of the library. It provides a fluent and chainabl
 ```php
 public function __construct(
     string $wrapper = '',
-    array $wrapper_class = [],
-    array $wrapper_attributes = [],
-    string $children_wrapper = '',
+    array $wrapperClass = [],
+    array $wrapperAttributes = [],
+    string $childrenWrapper = '',
     array $children = []
 )
 ```
@@ -49,9 +49,9 @@ public function __construct(
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `$wrapper` | `string` | HTML template with `%children%` placeholder |
-| `$wrapper_class` | `array` | Array of CSS classes |
-| `$wrapper_attributes` | `array` | Associative array of HTML attributes |
-| `$children_wrapper` | `string` | HTML template with `%child%` placeholder to wrap each child |
+| `$wrapperClass` | `array` | Array of CSS classes |
+| `$wrapperAttributes` | `array` | Associative array of HTML attributes |
+| `$childrenWrapper` | `string` | HTML template with `%child%` placeholder to wrap each child |
 | `$children` | `array` | Array of initial children |
 
 ### Examples
@@ -65,14 +65,14 @@ $div = new Markup('<div>%children%</div>');
 // With classes and attributes
 $card = new Markup(
     wrapper: '<div class="%classes%" %attributes%>%children%</div>',
-    wrapper_class: ['card', 'shadow'],
-    wrapper_attributes: ['id' => 'main-card', 'data-type' => 'product']
+    wrapperClass: ['card', 'shadow'],
+    wrapperAttributes: ['id' => 'main-card', 'data-type' => 'product']
 );
 
 // With children wrapper
 $list = new Markup(
     wrapper: '<ul>%children%</ul>',
-    children_wrapper: '<li>%child%</li>',
+    childrenWrapper: '<li>%child%</li>',
     children: ['Item 1', 'Item 2', 'Item 3']
 );
 ```
@@ -747,7 +747,7 @@ function createCard(string $title, string $content, ?string $imageUrl = null): M
 {
     $card = new Markup(
         wrapper: '<div class="%classes%">%children%</div>',
-        wrapper_class: ['card', 'shadow-lg']
+        wrapperClass: ['card', 'shadow-lg']
     );
     
     if ($imageUrl) {
@@ -850,7 +850,7 @@ class Button extends Markup
     {
         parent::__construct(
             wrapper: '<button class="%classes%" %attributes%>%children%</button>',
-            wrapper_class: ['btn'],
+            wrapperClass: ['btn'],
             children: [$text]
         );
         
@@ -899,7 +899,7 @@ class Card extends Markup
     {
         parent::__construct(
             wrapper: '<div class="%classes%" %attributes%>%children%</div>',
-            wrapper_class: ['card']
+            wrapperClass: ['card']
         );
         
         // Define slots for structured content
@@ -994,7 +994,7 @@ class Alert extends Component
     protected function init(): void
     {
         $this->wrapper = '<div class="%classes%" %attributes%>%children%</div>';
-        $this->wrapper_class = ['alert'];
+        $this->wrapperClass = ['alert'];
     }
     
     protected function build(): void
@@ -1065,10 +1065,10 @@ $list->children(
     new Markup('<li>%children%</li>', children: ['Item 3'])
 );
 
-// ✅ More performant - uses children_wrapper
+// ✅ More performant - uses childrenWrapper
 $list = new Markup(
     wrapper: '<ul>%children%</ul>',
-    children_wrapper: '<li>%child%</li>',
+    childrenWrapper: '<li>%child%</li>',
     children: ['Item 1', 'Item 2', 'Item 3']
 );
 ```

@@ -21,7 +21,7 @@ namespace MaxPertici\Markup;
  * ```php
  * $list = new Markup(
  *     wrapper: '<ul>%children%</ul>',
- *     children_wrapper: '<li>%child%</li>',
+ *     childrenWrapper: '<li>%child%</li>',
  *     children: [
  *         'Item 1',
  *         'Item 2',

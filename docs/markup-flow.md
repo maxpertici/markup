@@ -249,7 +249,7 @@ for ($i = 0; $i < $flow->count(); $i++) {
 
 ## Usage with Markup
 
-`MarkupFlow` is designed to work seamlessly with the `Markup` class's `children_wrapper` feature.
+`MarkupFlow` is designed to work seamlessly with the `Markup` class's `childrenWrapper` feature.
 
 ### Basic Integration
 
@@ -260,7 +260,7 @@ use MaxPertici\Markup\MarkupFlow;
 // Create a list with flowing content
 $list = new Markup(
     wrapper: '<ul>%children%</ul>',
-    children_wrapper: '<li>%child%</li>',
+    childrenWrapper: '<li>%child%</li>',
     children: [
         'Simple item',
         new MarkupFlow([
@@ -292,7 +292,7 @@ $menuItem = new MarkupFlow([$icon, ' ', $text]);
 
 $menu = new Markup(
     wrapper: '<ul class="menu">%children%</ul>',
-    children_wrapper: '<li>%child%</li>',
+    childrenWrapper: '<li>%child%</li>',
     children: [$menuItem]
 );
 
@@ -335,7 +335,7 @@ function createMenuItem(string $icon, string $label, string $url): MarkupFlow
 // Build menu
 $menu = new Markup(
     wrapper: '<nav><ul class="main-menu">%children%</ul></nav>',
-    children_wrapper: '<li class="menu-item">%child%</li>',
+    childrenWrapper: '<li class="menu-item">%child%</li>',
     children: [
         createMenuItem('🏠', 'Home', '/'),
         createMenuItem('📝', 'Blog', '/blog'),
@@ -395,7 +395,7 @@ function createProduct(string $name, float $price, array $badges = []): MarkupFl
 // Build product list
 $products = new Markup(
     wrapper: '<ul class="product-list">%children%</ul>',
-    children_wrapper: '<li class="product-item">%child%</li>',
+    childrenWrapper: '<li class="product-item">%child%</li>',
     children: [
         createProduct('Premium Widget', 99.99, ['New', 'Popular']),
         createProduct('Standard Widget', 49.99, ['Sale']),
@@ -471,7 +471,7 @@ $eventContent = new Markup(
 
 $timeline = new Markup(
     wrapper: '<div class="timeline">%children%</div>',
-    children_wrapper: '<div class="timeline-item">%child%</div>',
+    childrenWrapper: '<div class="timeline-item">%child%</div>',
     children: [
         createTimelineEvent('2024-01', 'Project Launch', $eventContent),
         createTimelineEvent('2024-02', 'Version 2.0 Released'),
@@ -495,7 +495,7 @@ class Breadcrumb
     {
         $this->markup = new Markup(
             wrapper: '<nav aria-label="breadcrumb"><ol class="breadcrumb">%children%</ol></nav>',
-            children_wrapper: '<li class="breadcrumb-item">%child%</li>'
+            childrenWrapper: '<li class="breadcrumb-item">%child%</li>'
         );
     }
     
@@ -601,7 +601,7 @@ function createTagCloud(array $tags): Markup
     
     return new Markup(
         wrapper: '<div class="tag-cloud">%children%</div>',
-        children_wrapper: '<span class="tag-item">%child%</span>',
+        childrenWrapper: '<span class="tag-item">%child%</span>',
         children: $tagFlows
     );
 }
@@ -706,7 +706,7 @@ $items = [
 
 $list = new Markup(
     wrapper: '<div class="items">%children%</div>',
-    children_wrapper: '<div class="item">%child%</div>',
+    childrenWrapper: '<div class="item">%child%</div>',
     children: array_map('buildComplexItem', $items)
 );
 
@@ -738,7 +738,7 @@ $topBar = new MarkupFlow([
 
 $page = new Markup(
     wrapper: '<div class="page">%children%</div>',
-    children_wrapper: '<div class="section">%child%</div>',
+    childrenWrapper: '<div class="section">%child%</div>',
     children: [$topBar]
 );
 ```
@@ -790,7 +790,7 @@ function assembleContent(
 // Usage - different variations
 $list = new Markup(
     wrapper: '<ul>%children%</ul>',
-    children_wrapper: '<li>%child%</li>',
+    childrenWrapper: '<li>%child%</li>',
     children: [
         assembleContent('Basic text'),
         assembleContent('With badge', includeBadge: true),
@@ -882,7 +882,7 @@ function iconText(string $icon, string $text): MarkupFlow
 
 $list = new Markup(
     wrapper: '<ul>%children%</ul>',
-    children_wrapper: '<li>%child%</li>',
+    childrenWrapper: '<li>%child%</li>',
     children: [
         iconText('📧', 'Email us'),
         iconText('📞', 'Call us'),
