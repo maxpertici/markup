@@ -637,6 +637,112 @@ See [MarkupFinder](markup-finder.html) for complete documentation.
 
 ---
 
+## Text Extraction
+
+### text()
+
+Extracts plain text content from the markup and its children, ignoring all HTML tags.
+
+```php
+text(bool $recursive = true, bool $includeSlots = true, bool $executeCallables = true): string
+```
+
+This method recursively traverses the markup tree and extracts all text content while:
+- Including string children as-is
+- Recursively extracting text from nested Markup instances
+- Processing MarkupFlow items
+- Optionally including slot content
+- Optionally executing callables to capture their output
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `$recursive` | `bool` | `true` | Extract text from nested Markup children |
+| `$includeSlots` | `bool` | `true` | Include content from filled slots |
+| `$executeCallables` | `bool` | `true` | Execute callables and capture their output |
+
+**Examples:**
+
+```php
+// Simple text extraction
+$markup = new Markup(
+    wrapper: '<div>%children%</div>',
+    children: ['Hello ', 'World!']
+);
+echo $markup->text(); // "Hello World!"
+
+// With nested Markup
+$link = new Markup('<a href="#">%children%</a>', children: ['Click here']);
+$paragraph = new Markup(
+    '<p>%children%</p>',
+    children: ['Text before link, ', $link, ', text after.']
+);
+echo $paragraph->text(); // "Text before link, Click here, text after."
+
+// With complex structure
+$article = new Markup(
+    '<article>%children%</article>',
+    children: [
+        new Markup('<h2>%children%</h2>', children: ['Title']),
+        new Markup('<p>%children%</p>', children: [
+            'This is ',
+            new Markup('<strong>%children%</strong>', children: ['important']),
+            ' content.'
+        ])
+    ]
+);
+echo $article->text(); // "TitleThis is important content."
+
+// Non-recursive extraction (only direct children)
+$text = $markup->text(recursive: false);
+
+// Exclude slots
+$text = $markup->text(includeSlots: false);
+
+// Don't execute callables
+$text = $markup->text(executeCallables: false);
+```
+
+### Practical Use Cases
+
+**Meta Description Generation:**
+```php
+$content = new Markup(/* ... */);
+$description = substr($content->text(), 0, 160);
+echo '<meta name="description" content="' . htmlspecialchars($description) . '">';
+```
+
+**Word Count:**
+```php
+$wordCount = str_word_count($markup->text());
+echo "Reading time: " . ceil($wordCount / 200) . " minutes";
+```
+
+**Search Indexing:**
+```php
+$searchableText = strtolower($markup->text());
+$index[$documentId] = $searchableText;
+```
+
+**Content Validation:**
+```php
+if (str_contains($markup->text(), $requiredKeyword)) {
+    echo "Content contains required keyword";
+}
+```
+
+**SEO Analysis:**
+```php
+$text = $markup->text();
+$titleText = $title->text();
+if (str_contains($text, $titleText)) {
+    echo "Title keyword appears in content ✓";
+}
+```
+
+---
+
 ## Rendering Methods
 
 ### render()

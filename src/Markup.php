@@ -733,6 +733,163 @@ class Markup implements MarkupInterface {
 	}
 
 	/**
+	 * Extracts plain text content from this markup and its children.
+	 *
+	 * This method recursively extracts all text content from the markup tree,
+	 * ignoring all HTML tags (wrapper, childrenWrapper, etc.). It processes:
+	 * - String children: included as-is
+	 * - Markup children: recursively extracts their text
+	 * - MarkupFlow: extracts text from all items
+	 * - Slots: optionally includes their content if filled
+	 * - Callables: optionally executes them to capture output
+	 *
+	 * Example usage:
+	 * ```php
+	 * $markup = new Markup(
+	 *     wrapper: '<div class="content">%children%</div>',
+	 *     children: [
+	 *         'Hello ',
+	 *         new Markup('<strong>%children%</strong>', children: ['World']),
+	 *         '!'
+	 *     ]
+	 * );
+	 *
+	 * echo $markup->text(); // Outputs: "Hello World!"
+	 * ```
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param bool $recursive         Whether to extract text from nested Markup children. Default true.
+	 * @param bool $includeSlots      Whether to include slot content. Default true.
+	 * @param bool $executeCallables  Whether to execute callables to capture their output. Default true.
+	 * @return string The extracted plain text content.
+	 */
+	public function text( bool $recursive = true, bool $includeSlots = true, bool $executeCallables = true ): string {
+		return $this->extractText( $this->children, $recursive, $includeSlots, $executeCallables );
+	}
+
+	/**
+	 * Recursively extracts text from an array of children.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param array $children          The children array to process.
+	 * @param bool  $recursive         Whether to recursively extract from nested Markup.
+	 * @param bool  $includeSlots      Whether to include slot content.
+	 * @param bool  $executeCallables  Whether to execute callables.
+	 * @return string The extracted text.
+	 */
+	private function extractText( array $children, bool $recursive, bool $includeSlots, bool $executeCallables ): string {
+		$text = '';
+
+		foreach ( $children as $child ) {
+			// Handle MarkupSlot objects
+			if ( $child instanceof MarkupSlot ) {
+				if ( $includeSlots ) {
+					$text .= $this->extractSlotText( $child, $recursive, $includeSlots, $executeCallables );
+				}
+				continue;
+			}
+
+			// Handle MarkupFlow objects
+			if ( $child instanceof MarkupFlow ) {
+				foreach ( $child->items() as $item ) {
+					$text .= $this->extractItemText( $item, $recursive, $includeSlots, $executeCallables );
+				}
+				continue;
+			}
+
+			// Handle regular items
+			$text .= $this->extractItemText( $child, $recursive, $includeSlots, $executeCallables );
+		}
+
+		return $text;
+	}
+
+	/**
+	 * Extracts text from a single item (string, Markup, or callable).
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param mixed $item              The item to process.
+	 * @param bool  $recursive         Whether to recursively extract from nested Markup.
+	 * @param bool  $includeSlots      Whether to include slot content.
+	 * @param bool  $executeCallables  Whether to execute callables.
+	 * @return string The extracted text.
+	 */
+	private function extractItemText( $item, bool $recursive, bool $includeSlots, bool $executeCallables ): string {
+		// Handle Markup objects
+		if ( $item instanceof Markup ) {
+			if ( $recursive ) {
+				return $item->text( $recursive, $includeSlots, $executeCallables );
+			}
+			return '';
+		}
+
+		// Handle strings
+		if ( is_string( $item ) ) {
+			return $item;
+		}
+
+		// Handle callables
+		if ( is_callable( $item ) && $executeCallables ) {
+			ob_start();
+			call_user_func( $item );
+			$output = ob_get_clean();
+			// Strip tags from callable output
+			return strip_tags( $output );
+		}
+
+		return '';
+	}
+
+	/**
+	 * Extracts text from a MarkupSlot and its content.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param MarkupSlot $slot              The slot to process.
+	 * @param bool       $recursive         Whether to recursively extract from nested Markup.
+	 * @param bool       $includeSlots      Whether to include slot content.
+	 * @param bool       $executeCallables  Whether to execute callables.
+	 * @return string The extracted text.
+	 */
+	private function extractSlotText( MarkupSlot $slot, bool $recursive, bool $includeSlots, bool $executeCallables ): string {
+		$name       = $slot->name();
+		$hasContent = isset( $this->slotsContent[ $name ] ) && ! empty( $this->slotsContent[ $name ] );
+
+		// If slot has no content and is not preserved, return empty
+		if ( ! $hasContent && ! $slot->isPreserved() ) {
+			return '';
+		}
+
+		// If slot has no content, return empty
+		if ( ! $hasContent ) {
+			return '';
+		}
+
+		$text = '';
+
+		// Extract text from all slot items
+		foreach ( $this->slotsContent[ $name ] as $item ) {
+			if ( $item instanceof MarkupSlot ) {
+				// Recursive slot
+				$text .= $this->extractSlotText( $item, $recursive, $includeSlots, $executeCallables );
+			} elseif ( $item instanceof MarkupFlow ) {
+				// MarkupFlow in slot
+				foreach ( $item->items() as $flowItem ) {
+					$text .= $this->extractItemText( $flowItem, $recursive, $includeSlots, $executeCallables );
+				}
+			} else {
+				// Regular item
+				$text .= $this->extractItemText( $item, $recursive, $includeSlots, $executeCallables );
+			}
+		}
+
+		return $text;
+	}
+
+	/**
 	 * Renders and returns the generated markup as a string.
 	 *
 	 * @since 1.0.0
