@@ -7,6 +7,8 @@
 
 namespace MaxPertici\Markup;
 
+use MaxPertici\Markup\Contracts\MarkupElementInterface;
+
 /**
  * Class MarkupFactory
  *

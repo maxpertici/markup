@@ -195,7 +195,7 @@ echo $section->render();
 **Creating Custom Component Enums:**
 
 ```php
-use MaxPertici\Markup\MarkupElementInterface;
+use MaxPertici\Markup\Contracts\MarkupElementInterface;
 
 enum BootstrapComponent: string implements MarkupElementInterface {
     
@@ -921,7 +921,7 @@ echo $post->render();
 
 ```php
 use MaxPertici\Markup\MarkupFactory;
-use MaxPertici\Markup\MarkupElementInterface;
+use MaxPertici\Markup\Contracts\MarkupElementInterface;
 
 // Define a Tailwind CSS component library
 enum TailwindComponent implements MarkupElementInterface {
@@ -1073,6 +1073,7 @@ $time = microtime(true) - $start;
 All element libraries must implement `MarkupElementInterface`:
 
 ```php
+// MaxPertici\Markup\Contracts\MarkupElementInterface
 interface MarkupElementInterface {
     public function wrapper(): string;
     public function classes(): array;
@@ -1084,7 +1085,7 @@ interface MarkupElementInterface {
 ### Step 2: Create Your Enum
 
 ```php
-use MaxPertici\Markup\MarkupElementInterface;
+use MaxPertici\Markup\Contracts\MarkupElementInterface;
 
 enum MyComponents: string implements MarkupElementInterface {
     

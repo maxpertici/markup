@@ -242,6 +242,8 @@ $page->find()->css('nav:has(li.active)');    // has pseudo-class
 Create reusable component libraries with PHP enums:
 
 ```php
+use MaxPertici\Markup\Contracts\MarkupElementInterface;
+
 enum BootstrapComponent implements MarkupElementInterface {
     case CARD;
     case BUTTON_PRIMARY;

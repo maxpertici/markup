@@ -7,7 +7,7 @@
 
 namespace MaxPertici\Markup\Elements;
 
-use MaxPertici\Markup\MarkupElementInterface;
+use MaxPertici\Markup\Contracts\MarkupElementInterface;
 
 /**
  * Enum HtmlTag

@@ -7,6 +7,7 @@
 
 namespace MaxPertici\Markup;
 
+use MaxPertici\Markup\Contracts\MarkupInterface;
 use MaxPertici\Markup\MarkupFinder;
 
 /**

@@ -4,10 +4,10 @@
  *
  * Defines the contract that all markup classes must implement.
  *
- * @package MaxPertici\Markup
+ * @package MaxPertici\Markup\Contracts
  */
 
-namespace MaxPertici\Markup;
+namespace MaxPertici\Markup\Contracts;
 
 /**
  * Markup Interface

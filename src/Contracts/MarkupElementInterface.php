@@ -2,10 +2,10 @@
 /**
  * Interface for markup element definitions.
  *
- * @package MaxPertici\Markup
+ * @package MaxPertici\Markup\Contracts
  */
 
-namespace MaxPertici\Markup;
+namespace MaxPertici\Markup\Contracts;
 
 /**
  * Interface MarkupElementInterface
