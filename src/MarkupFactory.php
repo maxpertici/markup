@@ -151,6 +151,10 @@ class MarkupFactory {
 
 			// Parse children recursively with depth tracking
 			$children = self::parseChildren( $inner_html, $max_depth, $current_depth + 1 );
+			
+			// Group children if appropriate
+			$children = self::maybeGroupChildren( $children, $tag );
+			
 			foreach ( $children as $child ) {
 				$markup->children( $child );
 			}
@@ -173,6 +177,66 @@ class MarkupFactory {
 
 		// If it's just text, return as string child
 		return new Markup( '', [], [], '', [ $html ] );
+	}
+
+	/**
+	 * Groups children in a MarkupFlow if appropriate based on the parent tag.
+	 *
+	 * This method determines if children should be grouped together. Children are grouped when:
+	 * - There are multiple children (2 or more)
+	 * - The children are mixed (contains both strings and Markup instances)
+	 * - The parent tag is not a container element (ul, ol, table, etc.)
+	 *
+	 * This preserves the structure for cases like:
+	 * - <li>Text <ul>...</ul></li> - grouped together
+	 * - <p>Text <strong>bold</strong> more text</p> - grouped together
+	 * - <ul><li>Item 1</li><li>Item 2</li></ul> - NOT grouped (container)
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param array  $children The parsed children array.
+	 * @param string $tag      The parent tag name.
+	 * @return array Modified children array (may contain MarkupFlow).
+	 */
+	private static function maybeGroupChildren( array $children, string $tag ): array {
+		// If only one child or empty, no grouping needed
+		if ( count( $children ) <= 1 ) {
+			return $children;
+		}
+
+		// Container elements that should NOT group their children
+		$container_elements = [
+			'ul', 'ol', 'dl',           // Lists
+			'table', 'thead', 'tbody', 'tfoot', 'tr', // Tables
+			'select', 'datalist',       // Form containers
+			'nav', 'menu',              // Navigation containers
+			'div', 'section', 'article', 'header', 'footer', 'aside', 'main', // Semantic containers
+		];
+
+		// Don't group for container elements
+		if ( in_array( strtolower( $tag ), $container_elements, true ) ) {
+			return $children;
+		}
+
+		// Check if children are mixed (contains both strings and Markup)
+		$has_string = false;
+		$has_markup = false;
+
+		foreach ( $children as $child ) {
+			if ( is_string( $child ) ) {
+				$has_string = true;
+			} elseif ( $child instanceof Markup ) {
+				$has_markup = true;
+			}
+
+			// If we found both types, we should group them in a flow
+			if ( $has_string && $has_markup ) {
+				return [ new MarkupFlow( $children ) ];
+			}
+		}
+
+		// Not mixed content, return as-is
+		return $children;
 	}
 
 	/**
@@ -241,8 +305,8 @@ class MarkupFactory {
 				// Check if there's text before this tag
 				if ( $tag_start > $offset ) {
 					$text = substr( $html, $offset, $tag_start - $offset );
-					$text = trim( $text );
-					if ( ! empty( $text ) ) {
+					// Don't trim whitespace - preserve spaces between inline elements
+					if ( '' !== $text ) {
 						$children[] = $text;
 					}
 				}
@@ -294,8 +358,8 @@ class MarkupFactory {
 				if ( $open_count > 0 ) {
 					// Unclosed tag, treat rest as text
 					$text = substr( $html, $offset );
-					$text = trim( $text );
-					if ( ! empty( $text ) ) {
+					// Don't trim whitespace - preserve spaces between inline elements
+					if ( '' !== $text ) {
 						$children[] = $text;
 					}
 					break;
@@ -303,8 +367,8 @@ class MarkupFactory {
 			} else {
 				// No more tags, rest is text
 				$text = substr( $html, $offset );
-				$text = trim( $text );
-				if ( ! empty( $text ) ) {
+				// Don't trim whitespace - preserve spaces between inline elements
+				if ( '' !== $text ) {
 					$children[] = $text;
 				}
 				break;

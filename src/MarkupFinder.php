@@ -606,7 +606,10 @@ class MarkupFinder {
 	 */
 	private function searchInChildren( array $children, callable $callback, bool $deep, array &$results ): void {
 		foreach ( $children as $child ) {
-			if ( $child instanceof Markup ) {
+			// If it's a MarkupFlow, search in its items
+			if ( $child instanceof MarkupFlow ) {
+				$this->searchInChildren( $child->items(), $callback, $deep, $results );
+			} elseif ( $child instanceof Markup ) {
 				// Test this child
 				if ( call_user_func( $callback, $child ) ) {
 					$results[] = $child;
@@ -644,20 +647,23 @@ class MarkupFinder {
 
 			$slot_name = $slot->name();
 
-			if ( isset( $slots_content[ $slot_name ] ) ) {
-				foreach ( $slots_content[ $slot_name ] as $item ) {
-					if ( $item instanceof Markup ) {
-						// Test this item
-						if ( call_user_func( $callback, $item ) ) {
-							$results[] = $item;
-						}
-
-						// Continue recursively
-						$this->searchInChildren( $item->getChildren(), $callback, true, $results );
-						$this->searchInSlots( $item, $callback, $results );
+		if ( isset( $slots_content[ $slot_name ] ) ) {
+			foreach ( $slots_content[ $slot_name ] as $item ) {
+				// If it's a MarkupFlow, search in its items
+				if ( $item instanceof MarkupFlow ) {
+					$this->searchInChildren( $item->items(), $callback, true, $results );
+				} elseif ( $item instanceof Markup ) {
+					// Test this item
+					if ( call_user_func( $callback, $item ) ) {
+						$results[] = $item;
 					}
+
+					// Continue recursively
+					$this->searchInChildren( $item->getChildren(), $callback, true, $results );
+					$this->searchInSlots( $item, $callback, $results );
 				}
 			}
+		}
 		}
 	}
 
@@ -673,7 +679,13 @@ class MarkupFinder {
 	 */
 	private function findFirstInChildren( array $children, callable $callback, bool $deep ): ?Markup {
 		foreach ( $children as $child ) {
-			if ( $child instanceof Markup ) {
+			// If it's a MarkupFlow, search in its items
+			if ( $child instanceof MarkupFlow ) {
+				$result = $this->findFirstInChildren( $child->items(), $callback, $deep );
+				if ( null !== $result ) {
+					return $result;
+				}
+			} elseif ( $child instanceof Markup ) {
 				// Test this child
 				if ( call_user_func( $callback, $child ) ) {
 					return $child;
@@ -718,25 +730,31 @@ class MarkupFinder {
 
 			$slot_name = $slot->name();
 
-			if ( isset( $slots_content[ $slot_name ] ) ) {
-				foreach ( $slots_content[ $slot_name ] as $item ) {
-					if ( $item instanceof Markup ) {
-						// Test this item
-						if ( call_user_func( $callback, $item ) ) {
-							return $item;
-						}
-
-						// Continue recursively
-						$result = $this->findFirstInChildren( $item->getChildren(), $callback, true );
-						if ( null !== $result ) {
-							return $result;
-						}
-
-						$result = $this->findFirstInSlots( $item, $callback );
-						if ( null !== $result ) {
-							return $result;
-						}
+		if ( isset( $slots_content[ $slot_name ] ) ) {
+			foreach ( $slots_content[ $slot_name ] as $item ) {
+				// If it's a MarkupFlow, search in its items
+				if ( $item instanceof MarkupFlow ) {
+					$result = $this->findFirstInChildren( $item->items(), $callback, true );
+					if ( null !== $result ) {
+						return $result;
 					}
+				} elseif ( $item instanceof Markup ) {
+					// Test this item
+					if ( call_user_func( $callback, $item ) ) {
+						return $item;
+					}
+
+					// Continue recursively
+					$result = $this->findFirstInChildren( $item->getChildren(), $callback, true );
+					if ( null !== $result ) {
+						return $result;
+					}
+
+					$result = $this->findFirstInSlots( $item, $callback );
+					if ( null !== $result ) {
+						return $result;
+					}
+				}
 				}
 			}
 		}

@@ -799,28 +799,47 @@ class Markup implements MarkupInterface {
 
 			$this->output( $this->childrenOpenerTag() );
 
-			if ( $value instanceof Markup ) {
-				// Use render() or print() to respect subclass overrides
-				if ( $this->streaming ) {
-					$value->print();
-				} else {
-					$this->output( $value->render() );
+			// If it's a MarkupFlow, render all its items together in the same wrapper
+			if ( $value instanceof MarkupFlow ) {
+				foreach ( $value->items() as $item ) {
+					$this->renderItem( $item );
 				}
-			} elseif ( is_string( $value ) ) {
-				// Check strings first to avoid treating function names as callables
-				$this->output( $value );
-			} elseif ( is_callable( $value ) ) {
-				// Support for callbacks (closures, array callables, etc.)
-				if ( $this->streaming ) {
-					call_user_func( $value );
-				} else {
-					ob_start();
-					call_user_func( $value );
-					$this->output( ob_get_clean() );
-				}
+			} else {
+				$this->renderItem( $value );
 			}
 
 			$this->output( $this->childrenCloserTag() );
+		}
+	}
+
+	/**
+	 * Renders a single item (Markup, string, or callable).
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param mixed $item The item to render.
+	 * @return void
+	 */
+	private function renderItem( $item ): void {
+		if ( $item instanceof Markup ) {
+			// Use render() or print() to respect subclass overrides
+			if ( $this->streaming ) {
+				$item->print();
+			} else {
+				$this->output( $item->render() );
+			}
+		} elseif ( is_string( $item ) ) {
+			// Check strings first to avoid treating function names as callables
+			$this->output( $item );
+		} elseif ( is_callable( $item ) ) {
+			// Support for callbacks (closures, array callables, etc.)
+			if ( $this->streaming ) {
+				call_user_func( $item );
+			} else {
+				ob_start();
+				call_user_func( $item );
+				$this->output( ob_get_clean() );
+			}
 		}
 	}
 
@@ -953,10 +972,15 @@ class Markup implements MarkupInterface {
 		if ( $has_content ) {
 			foreach ( $this->slots_content[ $name ] as $item ) {
 				if ( $item instanceof Markup ) {
-				$item->print();
-			} elseif ( $item instanceof MarkupSlot ) {
-				// Render nested MarkupSlot recursively
-				$this->renderSlot( $item );
+					$item->print();
+				} elseif ( $item instanceof MarkupSlot ) {
+					// Render nested MarkupSlot recursively
+					$this->renderSlot( $item );
+				} elseif ( $item instanceof MarkupFlow ) {
+					// Render all items in the flow
+					foreach ( $item->items() as $group_item ) {
+						$this->renderItem( $group_item );
+					}
 				} elseif ( is_string( $item ) ) {
 					// Check strings first to avoid treating function names as callables
 					$this->output( $item );
@@ -981,10 +1005,23 @@ class Markup implements MarkupInterface {
 	if ( $has_content ) {
 		foreach ( $this->slots_content[ $name ] as $item ) {
 			if ( $item instanceof Markup ) {
-			$content .= $item->render();
-		} elseif ( $item instanceof MarkupSlot ) {
-			// Render nested MarkupSlot recursively
-			$content .= $this->renderSlot( $item );
+				$content .= $item->render();
+			} elseif ( $item instanceof MarkupSlot ) {
+				// Render nested MarkupSlot recursively
+				$content .= $this->renderSlot( $item );
+			} elseif ( $item instanceof MarkupFlow ) {
+				// Render all items in the flow
+				foreach ( $item->items() as $group_item ) {
+					if ( $group_item instanceof Markup ) {
+						$content .= $group_item->render();
+					} elseif ( is_string( $group_item ) ) {
+						$content .= $group_item;
+					} elseif ( is_callable( $group_item ) ) {
+						ob_start();
+						call_user_func( $group_item );
+						$content .= ob_get_clean();
+					}
+				}
 			} elseif ( is_string( $item ) ) {
 				// Check strings first to avoid treating function names as callables
 				$content .= $item;
