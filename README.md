@@ -188,6 +188,55 @@ $list->each($users, function($user, $index, $markup) {
 echo $list->render();
 ```
 
+### Nested Lists with MarkupFlow
+
+Use `MarkupFlow` to create complex nested structures:
+
+```php
+use MaxPertici\Markup\MarkupFlow;
+
+$nav = new Markup(
+    wrapper: '<ul>%children%</ul>',
+    children_wrapper: '<li>%child%</li>',
+    children: [
+        'Home',
+        'About',
+        new MarkupFlow([
+            'Products',
+            new Markup(
+                wrapper: '<ul>%children%</ul>',
+                children: [
+                    '<li>Electronics</li>',
+                    '<li>Clothing</li>',
+                    '<li>Books</li>',
+                ]
+            ),
+        ]),
+        'Contact',
+    ]
+);
+
+echo $nav->render();
+```
+
+**Output:**
+```html
+<ul>
+    <li>Home</li>
+    <li>About</li>
+    <li>Products
+        <ul>
+            <li>Electronics</li>
+            <li>Clothing</li>
+            <li>Books</li>
+        </ul>
+    </li>
+    <li>Contact</li>
+</ul>
+```
+
+`MarkupFlow` allows you to group multiple elements that will be rendered sequentially within a parent element, perfect for creating nested structures.
+
 ## Documentation
 
 For complete documentation, examples, and API reference, visit:

@@ -115,6 +115,56 @@ echo $card->render();
 </div>
 ```
 
+## Creating Lists with Sublists using MarkupFlow
+
+`MarkupFlow` is perfect for creating sequences of elements. Here's how to create a list with a sublist:
+
+```php
+use MaxPertici\Markup\Markup;
+use MaxPertici\Markup\MarkupFlow;
+
+$nav = new Markup(
+    wrapper: '<ul>%children%</ul>',
+    children_wrapper: '<li>%child%</li>',
+    children: [
+        'Home',
+        'About',
+        new MarkupFlow([
+            'Products',
+            new Markup(
+                wrapper: '<ul>%children%</ul>',
+                children: [
+                    '<li>Electronics</li>',
+                    '<li>Clothing</li>',
+                    '<li>Books</li>',
+                ]
+            ),
+        ]),
+        'Contact',
+    ]
+);
+
+echo $nav->render();
+```
+
+**Output:**
+```html
+<ul>
+    <li>Home</li>
+    <li>About</li>
+    <li>Products
+        <ul>
+            <li>Electronics</li>
+            <li>Clothing</li>
+            <li>Books</li>
+        </ul>
+    </li>
+    <li>Contact</li>
+</ul>
+```
+
+**Key Point:** `MarkupFlow` with a wrapper allows you to insert a complete nested structure within a parent element, perfect for creating sublists or hierarchical menus.
+
 ## What's Next?
 
 You now know the basics! Explore the full documentation to discover:
