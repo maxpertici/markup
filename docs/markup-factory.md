@@ -28,7 +28,12 @@ The `MarkupFactory` class provides a collection of static factory methods for cr
 
 - **Multiple Creation Patterns** - Three different ways to create Markup instances
 - **Type-Safe Element Creation** - Use enums for component libraries
-- **HTML Parsing** - Convert existing HTML into Markup structures
+- **Intelligent HTML Parsing** - Convert existing HTML into Markup structures with smart features:
+  - Automatic HTML comment removal
+  - Multi-root element auto-wrapping
+  - Smart MarkupFlow grouping for mixed inline content
+  - Depth control for safe parsing
+  - Whitespace preservation for inline elements
 - **Helper Methods** - Quick shortcuts for common HTML elements
 - **Zero Configuration** - Static methods, no instantiation needed
 
@@ -274,6 +279,12 @@ public static function fromHtml(
 
 This method parses HTML and creates a complete Markup tree with nested Markup instances for each HTML element. It preserves the entire structure including classes, attributes, and nesting.
 
+**Key Features:**
+- **HTML Comment Removal** - Comments (`<!-- ... -->`) are automatically stripped during parsing
+- **Auto-Wrapping** - Multiple root elements are automatically wrapped in a container `<div>`
+- **Smart Grouping** - Mixed content (text + elements) is grouped in `MarkupFlow` for inline elements
+- **Depth Control** - Optional max depth to prevent deep recursion on complex HTML
+
 #### Parameters
 
 | Parameter | Type | Description |
@@ -385,17 +396,209 @@ $markup = MarkupFactory::fromHtml($html);
 
 // Structure:
 // Markup(<p>) with children:
-//   - "This is "
-//   - Markup(<strong>) with child: "bold"
-//   - " text"
+//   - MarkupFlow containing:
+//     - "This is "
+//     - Markup(<strong>) with child: "bold"
+//     - " text"
+```
+
+**Mixed Content and Auto-Grouping:**
+
+When parsing inline elements with mixed text and HTML content, `fromHtml()` intelligently groups them in a `MarkupFlow`:
+
+```php
+// Inline element with mixed content
+$html = '<p>Text with <strong>bold</strong> and <em>italic</em> parts</p>';
+$p = MarkupFactory::fromHtml($html);
+
+// The <p> contains ONE child: a MarkupFlow
+// The MarkupFlow contains: ["Text with ", Markup(<strong>), " and ", Markup(<em>), " parts"]
+
+// Container elements are NOT grouped
+$html = '<ul><li>Item 1</li><li>Item 2</li></ul>';
+$ul = MarkupFactory::fromHtml($html);
+
+// The <ul> contains TWO separate children: Markup(<li>), Markup(<li>)
+// No MarkupFlow wrapper because <ul> is a container element
+```
+
+**Container vs. Inline Elements:**
+
+The parser treats these elements as **containers** (children are NOT grouped):
+- Lists: `ul`, `ol`, `dl`
+- Tables: `table`, `thead`, `tbody`, `tfoot`, `tr`
+- Forms: `select`, `datalist`
+- Navigation: `nav`, `menu`
+- Semantic: `div`, `section`, `article`, `header`, `footer`, `aside`, `main`
+
+All other elements are treated as **inline** (mixed children ARE grouped in MarkupFlow):
+- Text containers: `p`, `span`, `a`, `li`
+- Formatting: `strong`, `em`, `code`, `pre`
+- Headings: `h1` through `h6`
+
+```php
+// Inline element - children grouped
+$html = '<li>Item with <a href="#">link</a> inside</li>';
+$li = MarkupFactory::fromHtml($html);
+// Structure: Markup(<li>) → MarkupFlow → ["Item with ", Markup(<a>), " inside"]
+
+// Container element - children NOT grouped
+$html = '<div><p>Para 1</p><p>Para 2</p></div>';
+$div = MarkupFactory::fromHtml($html);
+// Structure: Markup(<div>) → [Markup(<p>), Markup(<p>)]
+```
+
+**Multiple Root Elements Auto-Wrapping:**
+
+When HTML contains multiple elements at the root level, they are automatically wrapped in a `<div>`:
+
+```php
+// Multiple root elements
+$html = '<noscript>Enable JS</noscript><header>Header</header><main>Content</main>';
+$markup = MarkupFactory::fromHtml($html);
+
+// Automatically wrapped:
+// <div>
+//   <noscript>Enable JS</noscript>
+//   <header>Header</header>
+//   <main>Content</main>
+// </div>
+
+// Single root element - no wrapping
+$html = '<div><p>Child 1</p><p>Child 2</p></div>';
+$markup = MarkupFactory::fromHtml($html);
+// Not wrapped, stays as <div> root
 ```
 
 **Important Notes:**
 - Self-closing tags and void elements are detected automatically
+- HTML comments are completely removed during parsing
 - Malformed HTML may produce unexpected results
-- Whitespace between elements may be normalized
+- Whitespace between elements is preserved for inline content
 - Unclosed tags are handled gracefully
 - Maximum depth prevents infinite recursion in malformed HTML
+
+---
+
+## Internal Parsing Methods
+
+The `fromHtml()` method uses several internal helper methods to parse HTML efficiently and intelligently. Understanding these can help you understand parsing behavior.
+
+### maybeGroupChildren()
+
+This private method determines whether children should be grouped in a `MarkupFlow`. It's called automatically during parsing to handle mixed inline content properly.
+
+```php
+private static function maybeGroupChildren(array $children, string $tag): array
+```
+
+**Grouping Logic:**
+
+1. **Single or no children** - No grouping needed, return as-is
+2. **Container elements** - Never group (preserve structure for lists, tables, divs, etc.)
+3. **Mixed content** - Group in MarkupFlow (text + markup in inline elements)
+4. **Homogeneous content** - No grouping needed (all text OR all markup)
+
+**Container Elements (Never Grouped):**
+- `ul`, `ol`, `dl` - Lists
+- `table`, `thead`, `tbody`, `tfoot`, `tr` - Tables
+- `select`, `datalist` - Form containers
+- `nav`, `menu` - Navigation
+- `div`, `section`, `article`, `header`, `footer`, `aside`, `main` - Semantic blocks
+
+**Example Behavior:**
+
+```php
+// Mixed content in <p> (inline element) - GROUPED
+$html = '<p>Text <strong>bold</strong> more</p>';
+// Children before grouping: ["Text ", Markup(<strong>), " more"]
+// Children after grouping: [MarkupFlow(["Text ", Markup(<strong>), " more"])]
+
+// Separate children in <ul> (container) - NOT GROUPED
+$html = '<ul><li>Item 1</li><li>Item 2</li></ul>';
+// Children before grouping: [Markup(<li>), Markup(<li>)]
+// Children after grouping: [Markup(<li>), Markup(<li>)] // Same
+```
+
+---
+
+### parseAttributes()
+
+This method efficiently parses HTML attribute strings into separate classes and attributes arrays.
+
+```php
+private static function parseAttributes(string $attributes_string): array
+```
+
+**Returns:** `[array $classes, array $attributes]`
+
+**Features:**
+- Single-pass regex parsing for performance
+- Handles double and single quoted attributes
+- Separates `class` attribute into array
+- All other attributes into associative array
+- Filters empty class values
+
+**Example:**
+
+```php
+$attr_string = 'class="btn btn-primary" id="submit-btn" data-action="submit"';
+list($classes, $attributes) = MarkupFactory::parseAttributes($attr_string);
+
+// $classes = ['btn', 'btn-primary']
+// $attributes = ['id' => 'submit-btn', 'data-action' => 'submit']
+```
+
+---
+
+### parseChildren()
+
+This recursive method parses inner HTML content into an array of children (Markup instances and/or strings).
+
+```php
+private static function parseChildren(
+    string $html,
+    ?int $max_depth = null,
+    int $current_depth = 0
+): array
+```
+
+**Process:**
+
+1. **Remove HTML comments** - Strip `<!-- ... -->` completely
+2. **Find opening tags** - Detect start of HTML elements
+3. **Extract text nodes** - Preserve text between elements
+4. **Match closing tags** - Handle nested tags with same name
+5. **Handle self-closing/void tags** - Detect `<br/>`, `<img>`, etc.
+6. **Recursive parsing** - Parse each child element with `fromHtml()`
+7. **Depth tracking** - Respect `max_depth` to prevent infinite recursion
+
+**Supported Elements:**
+
+**Void Elements (Self-closing):**
+`area`, `base`, `br`, `col`, `embed`, `hr`, `img`, `input`, `link`, `meta`, `param`, `source`, `track`, `wbr`
+
+**Nested Tag Handling:**
+
+```php
+// Correctly matches nested tags with same name
+$html = '<div><div>Inner</div></div>';
+// Outer div's closing tag correctly identified despite inner div
+
+// Tracks open/close count to find matching pair
+// open_count: 1 (outer) → 2 (inner) → 1 (inner closed) → 0 (outer closed)
+```
+
+**Whitespace Preservation:**
+
+```php
+// Whitespace is preserved for inline content
+$html = '<p>Text <strong>bold</strong> more</p>';
+// Children: ["Text ", Markup(<strong>), " more"]
+// NOT: ["Text", Markup(<strong>), "more"] ✗
+
+// This preserves proper spacing when rendered
+```
 
 ---
 
@@ -1057,12 +1260,46 @@ $time = microtime(true) - $start;
 - ✅ Migrating from string-based HTML
 - ✅ Performance is not critical
 - ✅ Need to manipulate complex nested structures
+- ✅ Want automatic MarkupFlow grouping for mixed content
+- ✅ Need HTML comment removal
 
 **Use helper methods when:**
 - ✅ Quick prototyping
 - ✅ Readability is more important than flexibility
 - ✅ Building simple elements with content
 - ✅ Prefer explicit method names
+
+**Understanding Auto-Grouping Behavior:**
+
+```php
+// When parsing inline elements, be aware of MarkupFlow grouping
+$html = '<p>Text <strong>bold</strong> text</p>';
+$p = MarkupFactory::fromHtml($html);
+
+// To access the content, you may need to work with MarkupFlow
+$children = $p->getChildren(); // Returns array with one MarkupFlow
+$flow = $children[0]; // The MarkupFlow instance
+$flowItems = $flow->getItems(); // ["Text ", Markup(<strong>), " text"]
+
+// For container elements, children are direct
+$html = '<div><p>Para 1</p><p>Para 2</p></div>';
+$div = MarkupFactory::fromHtml($html);
+$children = $div->getChildren(); // [Markup(<p>), Markup(<p>)]
+```
+
+**Depth Limiting Strategy:**
+
+```php
+// Use max_depth to prevent parsing very deep HTML structures
+// Useful for user-generated content or untrusted HTML
+
+// Parse only 3 levels deep
+$userHtml = '<div><!-- potentially very deep nesting --></div>';
+$safe = MarkupFactory::fromHtml($userHtml, 3);
+
+// Levels beyond 3 are kept as raw HTML strings
+// This prevents excessive memory usage and recursion
+```
 
 ---
 
@@ -1196,8 +1433,25 @@ $button = MarkupFactory::fromElement(MyComponents::PRIMARY_BUTTON, ['Click']);
 // Returns empty Markup instance
 $empty = MarkupFactory::fromHtml('');
 $empty = MarkupFactory::fromHtml('   '); // Whitespace trimmed
+$empty = MarkupFactory::fromHtml('<!-- only comments -->'); // Comments removed, becomes empty
 
 echo $empty->render(); // Outputs nothing
+```
+
+### HTML Comments
+
+```php
+// Comments are completely removed during parsing
+$html = '<div><!-- This comment will be removed -->Content</div>';
+$markup = MarkupFactory::fromHtml($html);
+
+echo $markup->render();
+// Output: <div>Content</div>
+
+// Multiple comments
+$html = '<!-- Header --><header><!-- Content -->Header</header><!-- Footer -->';
+$markup = MarkupFactory::fromHtml($html);
+// Only <header>Header</header> remains
 ```
 
 ### Malformed HTML
@@ -1209,6 +1463,28 @@ $malformed = MarkupFactory::fromHtml('<div>Unclosed');
 
 // Mismatched tags - parsed as text
 $mismatched = MarkupFactory::fromHtml('<div>Content</span>');
+// The closing </span> doesn't match opening <div>, treated as text
+
+// Deeply nested malformed HTML - use max_depth
+$dangerous = str_repeat('<div>', 1000) . 'Content' . str_repeat('</div>', 1000);
+$safe = MarkupFactory::fromHtml($dangerous, 10);
+// Only parses 10 levels, rest kept as string
+```
+
+### Multiple Root Elements
+
+```php
+// Multiple root elements are automatically wrapped in a div
+$html = '<p>Para 1</p><p>Para 2</p>';
+$markup = MarkupFactory::fromHtml($html);
+
+echo $markup->render();
+// Output: <div><p>Para 1</p><p>Para 2</p></div>
+
+// To avoid wrapper, ensure single root
+$html = '<div><p>Para 1</p><p>Para 2</p></div>';
+$markup = MarkupFactory::fromHtml($html);
+// Output: <div><p>Para 1</p><p>Para 2</p></div> (no extra wrapper)
 ```
 
 ### Invalid Element Enum

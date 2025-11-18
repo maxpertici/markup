@@ -106,12 +106,23 @@ class MarkupFactory {
 	 * This method parses an HTML string and creates a complete Markup structure
 	 * with all nested elements. Each HTML element becomes a Markup instance,
 	 * preserving the entire tree structure.
+	 * 
+	 * Note: HTML comments (<!-- ... -->) are automatically removed during parsing.
+	 * 
+	 * If the HTML contains multiple root-level elements (e.g., multiple divs or
+	 * elements at the same level), they will be automatically wrapped in a
+	 * container div element.
 	 *
 	 * Example usage:
 	 * ```php
+	 * // Single root element
 	 * $html = '<div class="card"><h2>Title</h2><p>Content</p></div>';
 	 * $markup = MarkupFactory::fromHtml($html);
 	 * echo $markup->render();
+	 * 
+	 * // Multiple root elements - will be wrapped in a div
+	 * $html = '<noscript>...</noscript><header>...</header><main>...</main>';
+	 * $markup = MarkupFactory::fromHtml($html); // Wrapped in div automatically
 	 * 
 	 * // Limit parsing depth to 3 levels
 	 * $markup = MarkupFactory::fromHtml($html, 3);
@@ -125,6 +136,9 @@ class MarkupFactory {
 	 * @return Markup A new Markup instance representing the parsed HTML tree.
 	 */
 	public static function fromHtml( string $html, ?int $max_depth = null, int $current_depth = 0 ): Markup {
+		// Remove HTML comments
+		$html = preg_replace( '/<!--(.|\s)*?-->/', '', $html );
+		
 		// Remove leading/trailing whitespace
 		$html = trim( $html );
 
@@ -175,6 +189,24 @@ class MarkupFactory {
 			// Create self-closing wrapper
 			$wrapper = sprintf( '<%s class="%%classes%%" %%attributes%%/>', $tag );
 			return new Markup( $wrapper, $classes, $attributes );
+		}
+
+		// Check if HTML contains multiple root-level elements
+		// If so, wrap them in a container div
+		if ( preg_match( '/<\w+/', $html ) ) {
+			$children = self::parseChildren( $html, $max_depth, $current_depth );
+			
+			// If we found multiple elements, wrap them in a div
+			if ( count( $children ) > 1 || ( count( $children ) === 1 && $children[0] instanceof Markup ) ) {
+				$wrapper = '<div class="%classes%" %attributes%>%children%</div>';
+				$markup  = new Markup( $wrapper, [], [] );
+				
+				foreach ( $children as $child ) {
+					$markup->children( $child );
+				}
+				
+				return $markup;
+			}
 		}
 
 		// If it's just text, return as string child
@@ -288,7 +320,10 @@ class MarkupFactory {
 	 */
 	private static function parseChildren( string $html, ?int $max_depth = null, int $current_depth = 0 ): array {
 		$children = [];
-		$html     = trim( $html );
+		
+		// Remove HTML comments
+		$html = preg_replace( '/<!--(.|\s)*?-->/', '', $html );
+		$html = trim( $html );
 
 		if ( empty( $html ) ) {
 			return $children;
