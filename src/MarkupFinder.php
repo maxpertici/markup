@@ -244,6 +244,7 @@ class MarkupFinder {
 	 * - Descendant: "parent child"
 	 * - Direct child: "parent > child"
 	 * - :has() pseudo-class: "parent:has(child)"
+	 * - Multiple selectors: "selector1, selector2" (returns elements in document order)
 	 *
 	 * Examples:
 	 * ```php
@@ -254,6 +255,7 @@ class MarkupFinder {
 	 * $markup->find()->css('.header > nav');               // direct child
 	 * $markup->find()->css('section:has(.highlight)');     // has child
 	 * $markup->find()->css('header > nav:has(li.active) a'); // complex
+	 * $markup->find()->css('h2, h3');                      // multiple selectors
 	 * ```
 	 *
 	 * @since 1.0.0
@@ -263,6 +265,11 @@ class MarkupFinder {
 	 */
 	public function css( string $selector ): array {
 		$selector = trim( $selector );
+
+		// Check for multiple selectors (comma-separated)
+		if ( strpos( $selector, ',' ) !== false ) {
+			return $this->cssMultipleSelectors( $selector );
+		}
 
 		// Optimization: Use existing methods for simple selectors
 		if ( preg_match( '/^\.[\w-]+$/', $selector ) ) {
@@ -289,6 +296,100 @@ class MarkupFinder {
 
 		// Start search with the first segment
 		return $this->searchWithSelector( $segments, 0, $this->root );
+	}
+
+	/**
+	 * Handles multiple comma-separated CSS selectors.
+	 *
+	 * Returns elements in document order (not grouped by selector).
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $selector The comma-separated selectors string.
+	 * @return array Array of matching Markup instances in document order.
+	 */
+	private function cssMultipleSelectors( string $selector ): array {
+		// Split by comma, handling potential commas inside :has()
+		$selectors = $this->splitSelectors( $selector );
+
+		if ( empty( $selectors ) ) {
+			return [];
+		}
+
+		// Get all elements in document order
+		$all_elements = $this->all( true );
+
+		// Filter elements that match any of the selectors
+		$results = [];
+		$seen    = []; // Track element IDs to avoid duplicates
+
+		foreach ( $all_elements as $element ) {
+			// Skip if already added
+			$element_id = spl_object_id( $element );
+			if ( isset( $seen[ $element_id ] ) ) {
+				continue;
+			}
+
+			// Check if element matches any selector
+			foreach ( $selectors as $single_selector ) {
+				$finder  = new MarkupFinder( $this->root );
+				$matches = $finder->css( $single_selector );
+
+				// Check if current element is in the matches
+				foreach ( $matches as $match ) {
+					if ( spl_object_id( $match ) === $element_id ) {
+						$results[]               = $element;
+						$seen[ $element_id ]     = true;
+						break 2; // Break both foreach loops
+					}
+				}
+			}
+		}
+
+		return $results;
+	}
+
+	/**
+	 * Splits comma-separated selectors, respecting parentheses.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $selector The comma-separated selectors string.
+	 * @return array Array of individual selector strings.
+	 */
+	private function splitSelectors( string $selector ): array {
+		$selectors = [];
+		$current   = '';
+		$depth     = 0; // Track parenthesis depth
+
+		for ( $i = 0; $i < strlen( $selector ); $i++ ) {
+			$char = $selector[ $i ];
+
+			if ( '(' === $char ) {
+				$depth++;
+				$current .= $char;
+			} elseif ( ')' === $char ) {
+				$depth--;
+				$current .= $char;
+			} elseif ( ',' === $char && 0 === $depth ) {
+				// Split here
+				$trimmed = trim( $current );
+				if ( '' !== $trimmed ) {
+					$selectors[] = $trimmed;
+				}
+				$current = '';
+			} else {
+				$current .= $char;
+			}
+		}
+
+		// Add the last selector
+		$trimmed = trim( $current );
+		if ( '' !== $trimmed ) {
+			$selectors[] = $trimmed;
+		}
+
+		return $selectors;
 	}
 
 	/**
