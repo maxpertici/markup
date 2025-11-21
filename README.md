@@ -44,29 +44,26 @@ composer require maxpertici/markup
 require 'vendor/autoload.php';
 
 use MaxPertici\Markup\Markup;
-use MaxPertici\Markup\MarkupFactory;
 
 // Simple element creation
-$paragraph = new Markup('<p class="text-center">%children%</p>');
-$paragraph->children('Hello, World!');
+$paragraph = new Markup('<p>%children%</p>', children: ['Hello, World!']);
 echo $paragraph->render();
-// Output: <p class="text-center">Hello, World!</p>
+// Output: <p>Hello, World!</p>
 
-// Using the Factory
-$div = MarkupFactory::create(
-    'div',
-    ['container', 'text-center'],
-    ['id' => 'main']
-)->children('Content here');
+// Create with classes and attributes using Markup::make()
+$div = Markup::make('div', ['container', 'text-center'], ['id' => 'main']);
+$div->append('Content here');
 
 echo $div->render();
 // Output: <div class="container text-center" id="main">Content here</div>
 
-// Parse existing HTML
-$html = '<div class="card"><h2>Title</h2><p>Content</p></div>';
-$markup = MarkupFactory::fromHtml($html);
-$markup->addClass('shadow-lg');
-echo $markup->render();
+// Parse existing HTML with Markup::fromHtml()
+$card = Markup::fromHtml('<div class="card"><h2>Title</h2></div>');
+$card->addClass('shadow')
+     ->setAttribute('data-enhanced', 'true');
+
+echo $card->render();
+// Output: <div class="card shadow" data-enhanced="true"><h2>Title</h2></div>
 ```
 
 ### Creating Components
@@ -93,18 +90,25 @@ echo $card->render();
 ### Managing Classes and Attributes
 
 ```php
-$button = new Markup('<button class="%classes%" %attributes%>%children%</button>');
-$button->addClass('btn', 'btn-primary')
-       ->setAttribute('type', 'submit')
-       ->setAttribute('id', 'submit-btn')
-       ->children('Submit');
+$button = new Markup(
+    '<button class="%classes%" %attributes%>%children%</button>',
+    classes: ['btn', 'btn-primary'],
+    attributes: ['type' => 'submit', 'id' => 'submit-btn'],
+    children: ['Submit']
+);
 
 echo $button->render();
 // Output: <button class="btn btn-primary" type="submit" id="submit-btn">Submit</button>
 
-// Check and modify
-if ($button->hasClass('btn-primary')) {
-    $button->removeClass('btn-primary')->addClass('btn-secondary');
+// Modify classes and attributes
+$button->addClass('btn-lg')
+       ->removeClass('btn-primary')
+       ->addClass('btn-secondary')
+       ->setAttribute('disabled', 'true');
+
+// Check classes
+if ($button->hasClass('btn-secondary')) {
+    echo "Button is secondary";
 }
 ```
 
@@ -129,46 +133,44 @@ $layout->slot('header', ['<h1>My Website</h1>'])
 echo $layout->render();
 ```
 
-### Finding Elements
+### Finding and Manipulating Elements
 
 ```php
-use MaxPertici\Markup\Elements\HtmlTag;
-
 // Build a page structure
-$page = MarkupFactory::fromElement(HtmlTag::DIV)
-    ->addClass('page')
+$page = Markup::make('div', ['page'])
     ->children(
-        MarkupFactory::fromElement(HtmlTag::HEADER)->addClass('header'),
-        MarkupFactory::fromElement(HtmlTag::MAIN)
-            ->addClass('content')
-            ->children(
-                MarkupFactory::fromElement(HtmlTag::P)->addClass('intro'),
-                MarkupFactory::fromElement(HtmlTag::P)->addClass('highlight')
-            )
+        Markup::make('header', ['header']),
+        Markup::make('main', ['content'])->children(
+            Markup::make('p', ['intro'])->append('Introduction text'),
+            Markup::make('p', ['highlight'])->append('Important note')
+        )
     );
 
 // Find elements using CSS selectors
-$headers = $page->find()->css('.header');
-$paragraphs = $page->find()->css('main p');
-$highlighted = $page->find()->css('.highlight');
+$headers = $page->find()->css('.header')->get();
+$paragraphs = $page->find()->css('main p')->get();
+$highlighted = $page->find()->css('.highlight')->first();
 
-// Modify found elements
-foreach ($page->find()->css('.intro') as $intro) {
-    $intro->addClass('text-large');
-}
+// Modify found elements with collection methods
+$page->find()->css('.intro')->get()
+    ->each(fn($intro) => $intro->addClass('text-large'));
+
+// Filter and transform
+$page->find()->tag('p')->get()
+    ->filter(fn($p) => $p->hasClass('intro'))
+    ->each(fn($p) => $p->addClass('featured'));
 ```
 
 ### Conditional and Loops
 
 ```php
 // Conditional rendering
-$card = new Markup('<div class="card">%children%</div>');
+$card = Markup::make('div', ['card'])->append('Regular content');
 $isAdmin = true;
 
-$card->children('Regular content')
-     ->when($isAdmin, function($markup) {
-         $markup->children('<div class="admin-panel">Admin tools</div>');
-     });
+$card->when($isAdmin, function($markup) {
+    $markup->append(Markup::make('div', ['admin-panel'])->append('Admin tools'));
+});
 
 // Loop through data
 $users = [
@@ -176,12 +178,10 @@ $users = [
     ['name' => 'Bob', 'email' => 'bob@example.com'],
 ];
 
-$list = new Markup('<ul>%children%</ul>');
+$list = Markup::make('ul');
 $list->each($users, function($user, $index, $markup) {
-    $markup->children(
-        new Markup('<li>%children%</li>', children: [
-            "{$user['name']} - {$user['email']}"
-        ])
+    $markup->append(
+        Markup::make('li')->append("{$user['name']} - {$user['email']}")
     );
 });
 
@@ -237,6 +237,56 @@ echo $nav->render();
 
 `MarkupFlow` allows you to group multiple elements that will be rendered sequentially within a parent element, perfect for creating nested structures.
 
+### Real-World Example: Web Scraping
+
+Fetch HTML from a URL and extract content:
+
+```php
+use MaxPertici\Markup\Markup;
+
+// Fetch and parse HTML
+$html = file_get_contents('https://example.com/blog');
+$page = Markup::fromHtml($html);
+
+// Find articles and process with collection methods
+$articles = $page->find()->tag('article')->get();
+
+$articles->each(function($article) {
+    // Get title and excerpt
+    $title = $article->find()->tag('h2')->first();
+    $excerpt = $article->find()->tag('p')->first();
+    
+    if ($title) {
+        echo "Title: " . $title->text() . "\n";
+    }
+    if ($excerpt) {
+        echo "Excerpt: " . $excerpt->text() . "\n";
+    }
+    echo "---\n";
+});
+```
+
+Use collection methods to filter and transform:
+
+```php
+// Get only featured articles
+$featured = $page->find()->tag('article')->get()
+    ->filter(fn($article) => $article->hasClass('featured'));
+
+// Extract all titles
+$titles = $page->find()->tag('article')->get()
+    ->map(fn($article) => $article->find()->tag('h2')->first())
+    ->filter(fn($title) => $title !== null)
+    ->map(fn($title) => $title->text());
+
+// Take first 5 articles and enhance them
+$page->find()->tag('article')->get()
+    ->take(5)
+    ->each(fn($article) => $article->addClass('featured-item'));
+
+echo $page->render();
+```
+
 ## Documentation
 
 For complete documentation, examples, and API reference, visit:
@@ -246,25 +296,38 @@ For complete documentation, examples, and API reference, visit:
 #### Main Sections
 
 - **[Getting Started](https://maxpertici.github.io/markup/getting-started)** - Installation and basic usage
-- **[Markup](https://maxpertici.github.io/markup/markup)** - Core Markup class documentation
+- **[Markup](https://maxpertici.github.io/markup/markup)** - Core Markup class with all HTML manipulation methods
 - **[MarkupFactory](https://maxpertici.github.io/markup/markup-factory)** - Factory methods and HTML parsing
-- **[MarkupSlot](https://maxpertici.github.io/markup/markup-slot)** - Slot system for flexible layouts
-- **[MarkupFinder](https://maxpertici.github.io/markup/markup-finder)** - Search and query elements with CSS selectors
+- **[MarkupQueryBuilder](https://maxpertici.github.io/markup/markup-query-builder)** - Fluent interface for searching elements
+- **[MarkupCollection](https://maxpertici.github.io/markup/markup-collection)** - Collection methods for working with multiple elements
+- **[MarkupFinder](https://maxpertici.github.io/markup/markup-finder)** - Advanced search and filtering capabilities
+- **[MarkupFlow](https://maxpertici.github.io/markup/markup-flow)** - Group elements without wrapper
+- **[MarkupSlot](https://maxpertici.github.io/markup/markup-slot)** - Slot system for reusable components
 
 ## Key Features
 
 ### Factory Methods
 
-Create elements quickly with `MarkupFactory`:
+Create elements quickly with `Markup::make()` (shortcut for `MarkupFactory::create()`):
 
 ```php
-// Create elements
+// Create elements with Markup::make()
+$div = Markup::make('div', ['container'], ['id' => 'main']);
+$div->append('Content here');
+
+// Or use MarkupFactory directly
 $div = MarkupFactory::create('div', ['container'], ['id' => 'main']);
 
-// Parse HTML
+// Parse HTML with Markup::fromHtml()
+$markup = Markup::fromHtml('<div class="box">Content</div>');
+$markup->addClass('shadow');
+
+// Or use MarkupFactory directly
 $markup = MarkupFactory::fromHtml('<div class="box">Content</div>');
 
-// Use predefined elements
+// Use predefined elements with enums
+use MaxPertici\Markup\Elements\HtmlTag;
+
 $button = MarkupFactory::fromElement(
     HtmlTag::BUTTON,
     ['Click me'],
@@ -277,13 +340,40 @@ $button = MarkupFactory::fromElement(
 Find elements using familiar CSS selector syntax:
 
 ```php
-$page->find()->css('.section');              // by class
-$page->find()->css('div');                   // by tag
-$page->find()->css('#hero');                 // by ID
-$page->find()->css('[role="main"]');         // by attribute
-$page->find()->css('nav li.active');         // combined
-$page->find()->css('.header > nav');         // direct child
-$page->find()->css('nav:has(li.active)');    // has pseudo-class
+$page->find()->css('.section')->get();              // by class
+$page->find()->css('div')->get();                   // by tag
+$page->find()->css('#hero')->first();               // by ID
+$page->find()->css('[role="main"]')->get();         // by attribute
+$page->find()->css('nav li.active')->get();         // combined
+$page->find()->css('.header > nav')->get();         // direct child
+$page->find()->css('nav:has(li.active)')->get();    // has pseudo-class
+```
+
+### Collection Methods
+
+Work with multiple elements using powerful collection methods:
+
+```php
+// Filter elements
+$featured = $page->find()->tag('article')->get()
+    ->filter(fn($article) => $article->hasClass('featured'));
+
+// Map and transform
+$titles = $page->find()->tag('h2')->get()
+    ->map(fn($title) => $title->text());
+
+// Take subset
+$first5 = $page->find()->tag('p')->get()->take(5);
+
+// Iterate with each
+$page->find()->css('.card')->get()
+    ->each(fn($card) => $card->addClass('enhanced'));
+
+// Chain methods
+$page->find()->tag('article')->get()
+    ->filter(fn($article) => $article->hasClass('published'))
+    ->take(10)
+    ->each(fn($article) => $article->addClass('featured'));
 ```
 
 ### Enum-Based Components
