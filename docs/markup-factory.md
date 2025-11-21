@@ -1500,6 +1500,7 @@ $markup = MarkupFactory::fromHtml($html);
 
 - [Markup Class](markup.html) - Main markup building class
 - [MarkupSlot](markup-slot.html) - Slot system for named placeholders
-- [MarkupFinder](markup-finder.html) - Search and query markup trees
-- [Getting Started](getting-start.html) - Introduction and first steps
+- [MarkupFinder](markup-finder.html) - Direct search methods
+- [MarkupQueryBuilder](markup-query-builder.html) - Fluent query builder
+- [Getting Started](getting-started.html) - Introduction and first steps
 

@@ -1011,7 +1011,8 @@ if (!$flow->isEmpty()) {
 ## See Also
 
 - [Markup Class](markup.html) - Main markup building class
-- [MarkupFactory](markup-factory.html) - Quick creation methods  
+- [MarkupFactory](markup-factory.html) - Quick creation methods
 - [MarkupSlot](markup-slot.html) - Slot system for named placeholders
+- [MarkupQueryBuilder](markup-query-builder.html) - Fluent query builder
 - [Getting Started](getting-started.html) - Introduction and first steps
 

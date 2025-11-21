@@ -602,38 +602,69 @@ $list->each($users, function($user, $index, $markup) {
 
 ### find()
 
-Creates a `MarkupFinder` instance to search the tree.
+Creates a `MarkupQueryBuilder` instance for building fluent search queries.
 
 ```php
-find(): MarkupFinder
+find(): MarkupQueryBuilder
 ```
+
+The query builder provides a chainable interface for searching elements. It returns a `MarkupCollection` of results.
 
 **Examples:**
 
 ```php
 // Search by class
-$elements = $markup->find()->findByClass('active');
+$elements = $markup->find()->class('active')->get();
 
 // Search by tag
-$divs = $markup->find()->findByTag('div');
+$divs = $markup->find()->tag('div')->get();
 
 // Search by slug
-$header = $markup->find()->findBySlug('main-header');
+$header = $markup->find()->slug('main-header')->first();
 
 // Search by attribute
-$withRole = $markup->find()->findByAttribute('role', 'navigation');
+$withRole = $markup->find()->attribute('role', 'navigation')->get();
 
 // CSS selector
-$navLinks = $markup->find()->css('nav a');
-$activeItems = $markup->find()->css('li.active');
+$navLinks = $markup->find()->css('nav a')->get();
+$activeItems = $markup->find()->css('li.active')->get();
 
-// Custom search
-$results = $markup->find()->search(function($m) {
-    return $m->hasClass('card') && $m->hasAttribute('data-id');
-});
+// Multiple criteria (AND logic)
+$results = $markup->find()
+    ->class('card')
+    ->hasAttribute('data-id')
+    ->get();
+
+// Custom search with where
+$results = $markup->find()
+    ->where(fn($m) => $m->hasClass('card') && $m->hasAttribute('data-id'))
+    ->get();
+
+// Get first result
+$first = $markup->find()->class('active')->first();
+
+// Count results
+$count = $markup->find()->tag('div')->count();
+
+// Check existence
+$exists = $markup->find()->class('error')->exists();
+
+// Collection transformations
+$prices = $markup->find()
+    ->class('product')
+    ->get()
+    ->map(fn($el) => $el->getAttribute('price'))
+    ->filter(fn($price) => (float)$price > 50);
 ```
 
-See [MarkupFinder](markup-finder.html) for complete documentation.
+**Note:** For direct access to `MarkupFinder` methods (like `findByClass()`, `findByTag()`, etc.), you can create a `MarkupFinder` instance directly:
+
+```php
+$finder = new \MaxPertici\Markup\MarkupFinder($markup);
+$results = $finder->findByClass('active');
+```
+
+See [MarkupQueryBuilder](markup-query-builder.html) for the query builder API and [MarkupFinder](markup-finder.html) for the finder API.
 
 ---
 
@@ -1185,6 +1216,8 @@ $list = new Markup(
 
 - [MarkupFactory](markup-factory.html) - Quick creation methods
 - [MarkupSlot](markup-slot.html) - Slot system
-- [MarkupFinder](markup-finder.html) - Search and query
-- [Getting Started](getting-start.html) - Introduction and first steps
+- [MarkupFinder](markup-finder.html) - Direct search methods
+- [MarkupQueryBuilder](markup-query-builder.html) - Fluent query builder
+- [MarkupCollection](markup-collection.html) - Collection methods
+- [Getting Started](getting-started.html) - Introduction and first steps
 

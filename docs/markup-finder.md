@@ -1169,6 +1169,8 @@ $results = $markup->find()->search(function($m) {
 
 - [Markup Class](markup.html) - Main markup building class
 - [MarkupFactory](markup-factory.html) - Quick creation methods
+- [MarkupQueryBuilder](markup-query-builder.html) - Fluent query builder
+- [MarkupCollection](markup-collection.html) - Collection methods
 - [MarkupSlot](markup-slot.html) - Slot system for named placeholders
-- [Getting Started](getting-start.html) - Introduction and first steps
+- [Getting Started](getting-started.html) - Introduction and first steps
 

@@ -918,6 +918,7 @@ $time = microtime(true) - $start;
 
 - [Markup Class](markup.html) - Main class and slot management
 - [MarkupFactory](markup-factory.html) - Quick creation methods
-- [MarkupFinder](markup-finder.html) - Search and query
-- [Getting Started Guide](getting-start.html) - Introduction and first steps
+- [MarkupFinder](markup-finder.html) - Direct search methods
+- [MarkupQueryBuilder](markup-query-builder.html) - Fluent query builder
+- [Getting Started Guide](getting-started.html) - Introduction and first steps
 
