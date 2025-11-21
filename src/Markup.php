@@ -134,6 +134,62 @@ class Markup implements MarkupInterface {
 	}
 
 	/**
+	 * Creates a new Markup instance with optional wrapper.
+	 *
+	 * This static factory method provides a convenient way to create
+	 * Markup instances without using the new keyword.
+	 *
+	 * Example usage:
+	 * ```php
+	 * $markup = Markup::make('<div>%children%</div>')
+	 *     ->addClass('container')
+	 *     ->children('Content');
+	 * ```
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $wrapper Optional. The wrapper HTML template. Default empty string.
+	 * @return self A new Markup instance.
+	 */
+	public static function make( string $wrapper = '' ): self {
+		return new self( $wrapper );
+	}
+
+	/**
+	 * Magic method to handle deep cloning of Markup instances.
+	 *
+	 * This ensures that when a Markup instance is cloned, all nested
+	 * Markup instances in children and slots are also cloned, creating
+	 * a truly independent copy.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	public function __clone() {
+		// Deep clone children
+		foreach ( $this->children as $key => $child ) {
+			if ( $child instanceof Markup || $child instanceof MarkupSlot || $child instanceof MarkupFlow ) {
+				$this->children[ $key ] = clone $child;
+			}
+		}
+
+		// Deep clone declared slots
+		foreach ( $this->declaredSlots as $name => $slot ) {
+			$this->declaredSlots[ $name ] = clone $slot;
+		}
+
+		// Deep clone slot content
+		foreach ( $this->slotsContent as $slotName => $items ) {
+			foreach ( $items as $key => $item ) {
+				if ( $item instanceof Markup || $item instanceof MarkupSlot || $item instanceof MarkupFlow ) {
+					$this->slotsContent[ $slotName ][ $key ] = clone $item;
+				}
+			}
+		}
+	}
+
+	/**
 	 * Sets or retrieves the slug identifier for this markup instance.
 	 *
 	 * When called with a parameter, sets the slug and returns $this for method chaining.
@@ -394,6 +450,48 @@ class Markup implements MarkupInterface {
 	}
 
 	/**
+	 * Adds child elements at the beginning of the children array.
+	 *
+	 * Children can be strings, Markup instances, MarkupSlot declarations, or callable functions.
+	 * Multiple children can be passed as separate arguments or as an array.
+	 *
+	 * Example usage:
+	 * ```php
+	 * $markup->prepend('First item', new Markup('<div>%children%</div>'));
+	 * ```
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param mixed ...$children Child elements to prepend (strings, Markup instances, MarkupSlot objects, or callables).
+	 * @return self Returns $this for method chaining.
+	 */
+	public function prepend( ...$children ): self {
+		// Process children in reverse order to maintain the correct order
+		foreach ( array_reverse( $children ) as $child ) {
+			if ( is_array( $child ) ) {
+				// If an array is passed, prepend each element in reverse order
+				foreach ( array_reverse( $child ) as $item ) {
+					array_unshift( $this->children, $item );
+
+					// If it's a MarkupSlot object, register it
+					if ( $item instanceof MarkupSlot ) {
+						$this->declaredSlots[ $item->name() ] = $item;
+					}
+				}
+			} else {
+				array_unshift( $this->children, $child );
+
+				// If it's a MarkupSlot object, register it
+				if ( $child instanceof MarkupSlot ) {
+					$this->declaredSlots[ $child->name() ] = $child;
+				}
+			}
+		}
+
+		return $this;
+	}
+
+	/**
 	 * Gets the current children array.
 	 *
 	 * When called without parameters, returns the array of all child elements.
@@ -427,6 +525,160 @@ class Markup implements MarkupInterface {
 		foreach ( $children as $child ) {
 			$this->addChildItem( $child );
 		}
+
+		return $this;
+	}
+
+	/**
+	 * Transforms children elements using a callback function.
+	 *
+	 * The callback receives each child element and should return the transformed element.
+	 * This method modifies the children array in place.
+	 *
+	 * Example usage:
+	 * ```php
+	 * $markup->mapChildren(function($child) {
+	 *     if ($child instanceof Markup) {
+	 *         $child->addClass('mapped');
+	 *     }
+	 *     return $child;
+	 * });
+	 * ```
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param callable $callback The callback to transform each child. Receives ($child).
+	 * @return self Returns $this for method chaining.
+	 */
+	public function mapChildren( callable $callback ): self {
+		$mapped = array_map( $callback, $this->children );
+		return $this->setChildren( $mapped );
+	}
+
+	/**
+	 * Filters children elements based on a callback condition.
+	 *
+	 * The callback receives each child element and should return true to keep it,
+	 * false to remove it. This method modifies the children array in place.
+	 *
+	 * Example usage:
+	 * ```php
+	 * $markup->filterChildren(function($child) {
+	 *     return $child instanceof Markup && $child->hasClass('keep');
+	 * });
+	 * ```
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param callable $callback The callback to test each child. Receives ($child).
+	 * @return self Returns $this for method chaining.
+	 */
+	public function filterChildren( callable $callback ): self {
+		$filtered = array_filter( $this->children, $callback );
+		return $this->setChildren( array_values( $filtered ) );
+	}
+
+	/**
+	 * Checks if the markup has no children.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return bool True if the markup has no children, false otherwise.
+	 */
+	public function isEmpty(): bool {
+		return empty( $this->children );
+	}
+
+	/**
+	 * Counts the number of direct children.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return int The number of children.
+	 */
+	public function countChildren(): int {
+		return count( $this->children );
+	}
+
+	/**
+	 * Gets the first child element.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return mixed The first child element or null if no children.
+	 */
+	public function first() {
+		return $this->children[0] ?? null;
+	}
+
+	/**
+	 * Gets the last child element.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return mixed The last child element or null if no children.
+	 */
+	public function last() {
+		return $this->children[ count( $this->children ) - 1 ] ?? null;
+	}
+
+	/**
+	 * Gets the nth child element (0-indexed).
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param int $index The index of the child to retrieve (0-based).
+	 * @return mixed The nth child element or null if index is out of bounds.
+	 */
+	public function nth( int $index ) {
+		return $this->children[ $index ] ?? null;
+	}
+
+	/**
+	 * Wraps all children within a new Markup element.
+	 *
+	 * This method takes all current children and wraps them in a new Markup instance
+	 * with the specified wrapper template. The wrapped children become the only child
+	 * of the current Markup.
+	 *
+	 * Example usage:
+	 * ```php
+	 * $markup = new Markup('<div>%children%</div>')
+	 *     ->children('Item 1', 'Item 2', 'Item 3')
+	 *     ->wrapChildren('<ul>%children%</ul>');
+	 * // Result: <div><ul>Item 1Item 2Item 3</ul></div>
+	 * ```
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $wrapper            The wrapper HTML template for the new Markup.
+	 * @param array  $wrapperClass       Optional. CSS classes for the wrapper. Default empty array.
+	 * @param array  $wrapperAttributes  Optional. HTML attributes for the wrapper. Default empty array.
+	 * @param string $childrenWrapper    Optional. The children wrapper HTML template. Default empty string.
+	 * @return self Returns $this for method chaining.
+	 */
+	public function wrapChildren(
+		string $wrapper,
+		array $wrapperClass = [],
+		array $wrapperAttributes = [],
+		string $childrenWrapper = ''
+	): self {
+		$wrapped = new Markup(
+			$wrapper,
+			$wrapperClass,
+			$wrapperAttributes,
+			$childrenWrapper,
+			$this->children
+		);
+
+		// Copy declared slots from this instance to the wrapper
+		foreach ( $this->declaredSlots as $name => $slot ) {
+			$wrapped->declaredSlots[ $name ] = $slot;
+		}
+
+		// Replace children with the wrapped version
+		$this->children      = [ $wrapped ];
+		$this->declaredSlots = [];
 
 		return $this;
 	}
@@ -666,6 +918,78 @@ class Markup implements MarkupInterface {
 	}
 
 	/**
+	 * Conditionally executes a callback when the condition is false.
+	 *
+	 * This is the inverse of when(). If the condition is false,
+	 * the callback is executed with the current Markup instance as its parameter.
+	 *
+	 * Example usage:
+	 * ```php
+	 * $markup = new Markup()
+	 *     ->unless($user_is_logged_in, function($markup) {
+	 *         $markup->children('Please log in');
+	 *     });
+	 * ```
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param bool     $condition The condition to evaluate.
+	 * @param callable $callback  The callback to execute if condition is false. Receives $this as parameter.
+	 * @return self Returns $this for method chaining.
+	 */
+	public function unless( bool $condition, callable $callback ): self {
+		return $this->when( ! $condition, $callback );
+	}
+
+	/**
+	 * Executes a callback without interrupting method chaining.
+	 *
+	 * This method is useful for performing side effects (like logging or debugging)
+	 * in the middle of a fluent chain without breaking the flow.
+	 *
+	 * Example usage:
+	 * ```php
+	 * $markup = new Markup()
+	 *     ->children('Content')
+	 *     ->tap(function($markup) {
+	 *         error_log('Current children count: ' . $markup->countChildren());
+	 *     })
+	 *     ->addClass('active');
+	 * ```
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param callable $callback The callback to execute. Receives $this as parameter.
+	 * @return self Returns $this for method chaining.
+	 */
+	public function tap( callable $callback ): self {
+		call_user_func( $callback, $this );
+		return $this;
+	}
+
+	/**
+	 * Passes the instance to a function and returns the result.
+	 *
+	 * Unlike tap(), this method returns the result of the callback instead of $this,
+	 * breaking the fluent chain. Useful for transforming or extracting data.
+	 *
+	 * Example usage:
+	 * ```php
+	 * $html = $markup->pipe(function($markup) {
+	 *     return $markup->render();
+	 * });
+	 * ```
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param callable $callback The callback to execute. Receives $this as parameter.
+	 * @return mixed The result of the callback.
+	 */
+	public function pipe( callable $callback ) {
+		return call_user_func( $callback, $this );
+	}
+
+	/**
 	 * Iterates over an array and executes a callback for each element.
 	 *
 	 * This method allows looping through data to generate repetitive markup.
@@ -774,6 +1098,83 @@ class Markup implements MarkupInterface {
 	 */
 	public function text( bool $recursive = true, bool $includeSlots = true, bool $executeCallables = true ): string {
 		return $this->extractText( $this->children, $recursive, $includeSlots, $executeCallables );
+	}
+
+	/**
+	 * Converts the Markup instance to an associative array.
+	 *
+	 * This method is useful for debugging, serialization, or inspection purposes.
+	 * It returns a snapshot of the current state of the Markup instance.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array Associative array containing the markup's properties.
+	 */
+	public function toArray(): array {
+		return array(
+			'slug'               => $this->slug,
+			'description'        => $this->description,
+			'wrapper'            => $this->wrapper,
+			'wrapperClass'       => $this->wrapperClass,
+			'wrapperAttributes'  => $this->wrapperAttributes,
+			'childrenWrapper'    => $this->childrenWrapper,
+			'children_count'     => count( $this->children ),
+			'slots'              => $this->getSlotsInfo(),
+		);
+	}
+
+	/**
+	 * Outputs debug information about the Markup instance.
+	 *
+	 * This method logs the Markup's properties to the error log when WP_DEBUG is enabled.
+	 * It's useful for debugging during development.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return self Returns $this for method chaining.
+	 */
+	public function debug(): self {
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			error_log( print_r( $this->toArray(), true ) );
+		}
+		return $this;
+	}
+
+	/**
+	 * Gets statistics about the Markup instance.
+	 *
+	 * This method returns an array with various counts and metrics
+	 * about the current state of the Markup.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array Array containing statistics.
+	 */
+	public function stats(): array {
+		return array(
+			'children_count'     => count( $this->children ),
+			'classes_count'      => count( $this->wrapperClass ),
+			'attributes_count'   => count( $this->wrapperAttributes ),
+			'slots_count'        => count( $this->declaredSlots ),
+			'filled_slots_count' => count( $this->filledSlotNames() ),
+			'is_empty'           => $this->isEmpty(),
+			'has_wrapper'        => ! empty( $this->wrapper ),
+		);
+	}
+
+	/**
+	 * Checks if this is the same Markup instance as another.
+	 *
+	 * This performs an identity check (===), not an equality check.
+	 * Two Markup instances with identical properties are not considered "the same".
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param Markup $markup The Markup instance to compare with.
+	 * @return bool True if this is the exact same instance, false otherwise.
+	 */
+	public function is( Markup $markup ): bool {
+		return $this === $markup;
 	}
 
 	/**
