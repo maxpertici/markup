@@ -8,7 +8,6 @@
 namespace MaxPertici\Markup;
 
 use MaxPertici\Markup\Contracts\MarkupInterface;
-use MaxPertici\Markup\MarkupFinder;
 
 /**
  * Class Markup
@@ -206,10 +205,10 @@ class Markup implements MarkupInterface {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param MarkupElementInterface $element    The element configuration to use.
-	 * @param array                  $children   Optional. Children elements. Default empty array.
-	 * @param array                  $classes    Optional. Additional CSS classes. Default empty array.
-	 * @param array                  $attributes Optional. Additional HTML attributes. Default empty array.
+	 * @param Contracts\MarkupElementInterface $element    The element configuration to use.
+	 * @param array                            $children   Optional. Children elements. Default empty array.
+	 * @param array                            $classes    Optional. Additional CSS classes. Default empty array.
+	 * @param array                            $attributes Optional. Additional HTML attributes. Default empty array.
 	 * @return self A new Markup instance.
 	 */
 	public static function fromElement(
@@ -738,6 +737,122 @@ class Markup implements MarkupInterface {
 
 		$this->wrapperAttributes = $attributes;
 		return $this;
+	}
+
+	/**
+	 * Sets a data-* attribute for the wrapper element.
+	 *
+	 * Automatically prepends "data-" to the attribute name. This provides
+	 * a convenient way to set HTML5 data attributes.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $name  The data attribute name (without "data-" prefix).
+	 * @param string $value The attribute value.
+	 * @return self Returns $this for method chaining.
+	 */
+	public function data( string $name, string $value ): self {
+		return $this->setAttribute( 'data-' . $name, $value );
+	}
+
+	/**
+	 * Sets an aria-* attribute for the wrapper element.
+	 *
+	 * Automatically prepends "aria-" to the attribute name. This provides
+	 * a convenient way to set ARIA accessibility attributes.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $name  The ARIA attribute name (without "aria-" prefix).
+	 * @param string $value The attribute value.
+	 * @return self Returns $this for method chaining.
+	 */
+	public function aria( string $name, string $value ): self {
+		return $this->setAttribute( 'aria-' . $name, $value );
+	}
+
+	/**
+	 * Gets the value of a data-* attribute.
+	 *
+	 * Automatically prepends "data-" to the attribute name.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $name The data attribute name (without "data-" prefix).
+	 * @return string|null The attribute value or null if not set.
+	 */
+	public function getData( string $name ): ?string {
+		return $this->getAttribute( 'data-' . $name );
+	}
+
+	/**
+	 * Checks if a data-* attribute exists.
+	 *
+	 * Automatically prepends "data-" to the attribute name.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $name The data attribute name (without "data-" prefix).
+	 * @return bool True if the attribute exists, false otherwise.
+	 */
+	public function hasData( string $name ): bool {
+		return $this->hasAttribute( 'data-' . $name );
+	}
+
+	/**
+	 * Removes a data-* attribute.
+	 *
+	 * Automatically prepends "data-" to the attribute name.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $name The data attribute name (without "data-" prefix).
+	 * @return self Returns $this for method chaining.
+	 */
+	public function removeData( string $name ): self {
+		return $this->removeAttribute( 'data-' . $name );
+	}
+
+	/**
+	 * Gets the value of an aria-* attribute.
+	 *
+	 * Automatically prepends "aria-" to the attribute name.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $name The ARIA attribute name (without "aria-" prefix).
+	 * @return string|null The attribute value or null if not set.
+	 */
+	public function getAria( string $name ): ?string {
+		return $this->getAttribute( 'aria-' . $name );
+	}
+
+	/**
+	 * Checks if an aria-* attribute exists.
+	 *
+	 * Automatically prepends "aria-" to the attribute name.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $name The ARIA attribute name (without "aria-" prefix).
+	 * @return bool True if the attribute exists, false otherwise.
+	 */
+	public function hasAria( string $name ): bool {
+		return $this->hasAttribute( 'aria-' . $name );
+	}
+
+	/**
+	 * Removes an aria-* attribute.
+	 *
+	 * Automatically prepends "aria-" to the attribute name.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $name The ARIA attribute name (without "aria-" prefix).
+	 * @return self Returns $this for method chaining.
+	 */
+	public function removeAria( string $name ): self {
+		return $this->removeAttribute( 'aria-' . $name );
 	}
 
 	/**
@@ -1458,18 +1573,54 @@ class Markup implements MarkupInterface {
 	/**
 	 * Outputs debug information about the Markup instance.
 	 *
-	 * This method logs the Markup's properties to the error log when WP_DEBUG is enabled.
-	 * It's useful for debugging during development.
+	 * This method logs the Markup's properties to the error log.
+	 * The developer controls when to debug by calling this method.
 	 *
 	 * @since 1.0.0
 	 *
 	 * @return self Returns $this for method chaining.
 	 */
 	public function debug(): self {
-		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-			error_log( print_r( $this->toArray(), true ) );
+		error_log( print_r( $this->toArray(), true ) );
+		return $this;
+	}
+
+	/**
+	 * Dumps the Markup instance for debugging.
+	 *
+	 * Uses symfony/var-dumper if available, otherwise falls back to var_dump.
+	 * This method allows method chaining.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return self Returns $this for method chaining.
+	 */
+	public function dump(): self {
+		if ( function_exists( 'dump' ) ) {
+			dump( $this->toArray() );
+		} else {
+			var_dump( $this->toArray() );
 		}
 		return $this;
+	}
+
+	/**
+	 * Dumps the Markup instance and dies (dump and die).
+	 *
+	 * Uses symfony/var-dumper if available, otherwise falls back to var_dump.
+	 * This method stops execution after dumping.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	public function dd(): void {
+		if ( function_exists( 'dump' ) ) {
+			dump( $this->toArray() );
+		} else {
+			var_dump( $this->toArray() );
+		}
+		die( 1 );
 	}
 
 	/**
