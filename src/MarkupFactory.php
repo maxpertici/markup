@@ -496,14 +496,12 @@ class MarkupFactory {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param string $href       The link URL.
 	 * @param string $text       Optional. The link text. Default empty string.
 	 * @param array  $classes    Optional. CSS classes. Default empty array.
-	 * @param array  $attributes Optional. Additional HTML attributes. Default empty array.
+	 * @param array  $attributes Optional. HTML attributes (should include 'href'). Default empty array.
 	 * @return Markup A new Markup instance.
 	 */
-	public static function a( string $href, string $text = '', array $classes = [], array $attributes = [] ): Markup {
-		$attributes['href'] = $href;
+	public static function a( string $text = '', array $classes = [], array $attributes = [] ): Markup {
 		$markup = self::create( 'a', $classes, $attributes );
 		if ( ! empty( $text ) ) {
 			$markup->append( $text );

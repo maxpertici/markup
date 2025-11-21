@@ -134,25 +134,357 @@ class Markup implements MarkupInterface {
 	}
 
 	/**
-	 * Creates a new Markup instance with optional wrapper.
+	 * Creates a new Markup instance from an HTML tag.
 	 *
-	 * This static factory method provides a convenient way to create
-	 * Markup instances without using the new keyword.
+	 * This is the main entry point for creating Markup instances.
+	 * Can be used with or without parameters, and is fully chainable.
 	 *
 	 * Example usage:
 	 * ```php
-	 * $markup = Markup::make('<div>%children%</div>')
+	 * // Fluent style
+	 * $markup = Markup::make('div')
 	 *     ->addClass('container')
+	 *     ->setAttribute('id', 'main')
+	 *     ->children('Content');
+	 *
+	 * // Direct style with all parameters
+	 * $markup = Markup::make('div', ['container'], ['id' => 'main'])
 	 *     ->children('Content');
 	 * ```
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param string $wrapper Optional. The wrapper HTML template. Default empty string.
+	 * @param string $tag        The HTML tag name (e.g., 'div', 'span', 'section').
+	 * @param array  $classes    Optional. CSS classes. Default empty array.
+	 * @param array  $attributes Optional. HTML attributes (associative array). Default empty array.
 	 * @return self A new Markup instance.
 	 */
-	public static function make( string $wrapper = '' ): self {
-		return new self( $wrapper );
+	public static function make( string $tag, array $classes = [], array $attributes = [] ): self {
+		return MarkupFactory::create( $tag, $classes, $attributes );
+	}
+
+	/**
+	 * Creates a Markup instance by parsing HTML.
+	 *
+	 * This method parses an HTML string and creates a complete Markup structure
+	 * with all nested elements. The returned Markup can be further modified.
+	 *
+	 * Example usage:
+	 * ```php
+	 * $markup = Markup::fromHtml('<div class="card"><h2>Title</h2></div>')
+	 *     ->addClass('extra-class')
+	 *     ->setAttribute('data-id', '123');
+	 * ```
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string   $html      The HTML string to parse.
+	 * @param int|null $maxDepth  Optional. Maximum parsing depth. Default null (unlimited).
+	 * @return self A new Markup instance representing the parsed HTML.
+	 */
+	public static function fromHtml( string $html, ?int $maxDepth = null ): self {
+		return MarkupFactory::fromHtml( $html, $maxDepth );
+	}
+
+	/**
+	 * Creates a Markup instance from a predefined element configuration.
+	 *
+	 * This method allows you to create Markup from predefined element configurations
+	 * like HtmlTag or custom element classes.
+	 *
+	 * Example usage:
+	 * ```php
+	 * use MaxPertici\Markup\Elements\HtmlTag;
+	 *
+	 * $markup = Markup::fromElement(
+	 *     HtmlTag::DIV,
+	 *     ['child content'],
+	 *     ['container'],
+	 *     ['id' => 'main']
+	 * )->addClass('extra');
+	 * ```
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param MarkupElementInterface $element    The element configuration to use.
+	 * @param array                  $children   Optional. Children elements. Default empty array.
+	 * @param array                  $classes    Optional. Additional CSS classes. Default empty array.
+	 * @param array                  $attributes Optional. Additional HTML attributes. Default empty array.
+	 * @return self A new Markup instance.
+	 */
+	public static function fromElement(
+		Contracts\MarkupElementInterface $element,
+		array $children = [],
+		array $classes = [],
+		array $attributes = []
+	): self {
+		return MarkupFactory::fromElement( $element, $children, $classes, $attributes );
+	}
+
+	/**
+	 * Creates a div element.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $content    Optional. The text content. Default empty string.
+	 * @param array  $classes    Optional. CSS classes. Default empty array.
+	 * @param array  $attributes Optional. HTML attributes. Default empty array.
+	 * @return self A new Markup instance.
+	 */
+	public static function div( string $content = '', array $classes = [], array $attributes = [] ): self {
+		return MarkupFactory::div( $content, $classes, $attributes );
+	}
+
+	/**
+	 * Creates a span element.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $content    Optional. The text content. Default empty string.
+	 * @param array  $classes    Optional. CSS classes. Default empty array.
+	 * @param array  $attributes Optional. HTML attributes. Default empty array.
+	 * @return self A new Markup instance.
+	 */
+	public static function span( string $content = '', array $classes = [], array $attributes = [] ): self {
+		return MarkupFactory::span( $content, $classes, $attributes );
+	}
+
+	/**
+	 * Creates a paragraph element.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $content    Optional. The text content. Default empty string.
+	 * @param array  $classes    Optional. CSS classes. Default empty array.
+	 * @param array  $attributes Optional. HTML attributes. Default empty array.
+	 * @return self A new Markup instance.
+	 */
+	public static function p( string $content = '', array $classes = [], array $attributes = [] ): self {
+		return MarkupFactory::p( $content, $classes, $attributes );
+	}
+
+	/**
+	 * Creates a link element.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $text       Optional. The link text. Default empty string.
+	 * @param array  $classes    Optional. CSS classes. Default empty array.
+	 * @param array  $attributes Optional. HTML attributes (should include 'href'). Default empty array.
+	 * @return self A new Markup instance.
+	 */
+	public static function a( string $text = '', array $classes = [], array $attributes = [] ): self {
+		return MarkupFactory::a( $text, $classes, $attributes );
+	}
+
+	/**
+	 * Creates a button element.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $content    Optional. The button label. Default empty string.
+	 * @param array  $classes    Optional. CSS classes. Default empty array.
+	 * @param array  $attributes Optional. HTML attributes. Default empty array.
+	 * @return self A new Markup instance.
+	 */
+	public static function button( string $content = '', array $classes = [], array $attributes = [] ): self {
+		return MarkupFactory::button( $content, $classes, $attributes );
+	}
+
+	/**
+	 * Creates a section element.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $content    Optional. The text content. Default empty string.
+	 * @param array  $classes    Optional. CSS classes. Default empty array.
+	 * @param array  $attributes Optional. HTML attributes. Default empty array.
+	 * @return self A new Markup instance.
+	 */
+	public static function section( string $content = '', array $classes = [], array $attributes = [] ): self {
+		return MarkupFactory::section( $content, $classes, $attributes );
+	}
+
+	/**
+	 * Creates an article element.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $content    Optional. The text content. Default empty string.
+	 * @param array  $classes    Optional. CSS classes. Default empty array.
+	 * @param array  $attributes Optional. HTML attributes. Default empty array.
+	 * @return self A new Markup instance.
+	 */
+	public static function article( string $content = '', array $classes = [], array $attributes = [] ): self {
+		return MarkupFactory::article( $content, $classes, $attributes );
+	}
+
+	/**
+	 * Creates a header element.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $content    Optional. The text content. Default empty string.
+	 * @param array  $classes    Optional. CSS classes. Default empty array.
+	 * @param array  $attributes Optional. HTML attributes. Default empty array.
+	 * @return self A new Markup instance.
+	 */
+	public static function header( string $content = '', array $classes = [], array $attributes = [] ): self {
+		return MarkupFactory::header( $content, $classes, $attributes );
+	}
+
+	/**
+	 * Creates a footer element.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $content    Optional. The text content. Default empty string.
+	 * @param array  $classes    Optional. CSS classes. Default empty array.
+	 * @param array  $attributes Optional. HTML attributes. Default empty array.
+	 * @return self A new Markup instance.
+	 */
+	public static function footer( string $content = '', array $classes = [], array $attributes = [] ): self {
+		return MarkupFactory::footer( $content, $classes, $attributes );
+	}
+
+	/**
+	 * Creates a nav element.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $content    Optional. The text content. Default empty string.
+	 * @param array  $classes    Optional. CSS classes. Default empty array.
+	 * @param array  $attributes Optional. HTML attributes. Default empty array.
+	 * @return self A new Markup instance.
+	 */
+	public static function nav( string $content = '', array $classes = [], array $attributes = [] ): self {
+		return MarkupFactory::nav( $content, $classes, $attributes );
+	}
+
+	/**
+	 * Creates an h1 heading element.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $content    Optional. The heading text. Default empty string.
+	 * @param array  $classes    Optional. CSS classes. Default empty array.
+	 * @param array  $attributes Optional. HTML attributes. Default empty array.
+	 * @return self A new Markup instance.
+	 */
+	public static function h1( string $content = '', array $classes = [], array $attributes = [] ): self {
+		return MarkupFactory::h1( $content, $classes, $attributes );
+	}
+
+	/**
+	 * Creates an h2 heading element.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $content    Optional. The heading text. Default empty string.
+	 * @param array  $classes    Optional. CSS classes. Default empty array.
+	 * @param array  $attributes Optional. HTML attributes. Default empty array.
+	 * @return self A new Markup instance.
+	 */
+	public static function h2( string $content = '', array $classes = [], array $attributes = [] ): self {
+		return MarkupFactory::h2( $content, $classes, $attributes );
+	}
+
+	/**
+	 * Creates an h3 heading element.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $content    Optional. The heading text. Default empty string.
+	 * @param array  $classes    Optional. CSS classes. Default empty array.
+	 * @param array  $attributes Optional. HTML attributes. Default empty array.
+	 * @return self A new Markup instance.
+	 */
+	public static function h3( string $content = '', array $classes = [], array $attributes = [] ): self {
+		return MarkupFactory::h3( $content, $classes, $attributes );
+	}
+
+	/**
+	 * Creates an h4 heading element.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $content    Optional. The heading text. Default empty string.
+	 * @param array  $classes    Optional. CSS classes. Default empty array.
+	 * @param array  $attributes Optional. HTML attributes. Default empty array.
+	 * @return self A new Markup instance.
+	 */
+	public static function h4( string $content = '', array $classes = [], array $attributes = [] ): self {
+		return MarkupFactory::h4( $content, $classes, $attributes );
+	}
+
+	/**
+	 * Creates an h5 heading element.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $content    Optional. The heading text. Default empty string.
+	 * @param array  $classes    Optional. CSS classes. Default empty array.
+	 * @param array  $attributes Optional. HTML attributes. Default empty array.
+	 * @return self A new Markup instance.
+	 */
+	public static function h5( string $content = '', array $classes = [], array $attributes = [] ): self {
+		return MarkupFactory::h5( $content, $classes, $attributes );
+	}
+
+	/**
+	 * Creates an h6 heading element.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $content    Optional. The heading text. Default empty string.
+	 * @param array  $classes    Optional. CSS classes. Default empty array.
+	 * @param array  $attributes Optional. HTML attributes. Default empty array.
+	 * @return self A new Markup instance.
+	 */
+	public static function h6( string $content = '', array $classes = [], array $attributes = [] ): self {
+		return MarkupFactory::h6( $content, $classes, $attributes );
+	}
+
+	/**
+	 * Creates an unordered list element.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $content    Optional. The text content. Default empty string.
+	 * @param array  $classes    Optional. CSS classes. Default empty array.
+	 * @param array  $attributes Optional. HTML attributes. Default empty array.
+	 * @return self A new Markup instance.
+	 */
+	public static function ul( string $content = '', array $classes = [], array $attributes = [] ): self {
+		return MarkupFactory::ul( $content, $classes, $attributes );
+	}
+
+	/**
+	 * Creates an ordered list element.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $content    Optional. The text content. Default empty string.
+	 * @param array  $classes    Optional. CSS classes. Default empty array.
+	 * @param array  $attributes Optional. HTML attributes. Default empty array.
+	 * @return self A new Markup instance.
+	 */
+	public static function ol( string $content = '', array $classes = [], array $attributes = [] ): self {
+		return MarkupFactory::ol( $content, $classes, $attributes );
+	}
+
+	/**
+	 * Creates a list item element.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $content    Optional. The text content. Default empty string.
+	 * @param array  $classes    Optional. CSS classes. Default empty array.
+	 * @param array  $attributes Optional. HTML attributes. Default empty array.
+	 * @return self A new Markup instance.
+	 */
+	public static function li( string $content = '', array $classes = [], array $attributes = [] ): self {
+		return MarkupFactory::li( $content, $classes, $attributes );
 	}
 
 	/**
