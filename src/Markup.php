@@ -702,34 +702,42 @@ class Markup implements MarkupInterface {
 	}
 
 	/**
-	 * Creates a MarkupFinder instance for searching within this markup tree.
+	 * Creates a MarkupQueryBuilder instance for searching within this markup tree.
 	 *
-	 * The finder allows you to search for Markup elements based on various criteria
-	 * such as tags, classes, attributes, slugs, or custom callbacks.
+	 * The query builder provides a fluent, chainable interface for building
+	 * search queries with multiple criteria. It returns a MarkupCollection
+	 * that can be further transformed.
 	 *
 	 * Example usage:
 	 * ```php
-	 * // Find all elements with a specific class
-	 * $elements = $markup->find()->findByClass('my-class');
+	 * // Fluent chainable queries
+	 * $cards = $markup->find()->class('card')->get();
 	 *
-	 * // Find elements by tag
-	 * $divs = $markup->find()->findByTag('div');
+	 * // Multiple criteria
+	 * $active = $markup->find()
+	 *     ->class('item')
+	 *     ->hasAttribute('data-active', 'true')
+	 *     ->first();
 	 *
-	 * // Find elements by slug
-	 * $element = $markup->find()->findBySlug('header-navigation');
+	 * // Custom callbacks
+	 * $elements = $markup->find()
+	 *     ->where(fn($m) => $m->hasClass('important'))
+	 *     ->get();
 	 *
-	 * // Custom search
-	 * $elements = $markup->find()->search(function($markup) {
-	 *     return $markup->hasClass('active') && $markup->hasAttribute('data-id');
-	 * });
+	 * // Collection transformations
+	 * $prices = $markup->find()
+	 *     ->class('product')
+	 *     ->get()
+	 *     ->map(fn($el) => $el->getAttribute('price'))
+	 *     ->filter(fn($price) => $price > 50);
 	 * ```
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return MarkupFinder The finder instance for method chaining.
+	 * @return MarkupQueryBuilder The query builder instance for method chaining.
 	 */
-	public function find(): MarkupFinder {
-		return new MarkupFinder( $this );
+	public function find(): MarkupQueryBuilder {
+		return new MarkupQueryBuilder( $this );
 	}
 
 	/**
