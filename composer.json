@@ -17,6 +17,9 @@
     "require": {
         "php": ">=8.1"
     },
+    "suggest": {
+        "symfony/var-dumper": "For enhanced debugging with dump() and dd() methods"
+    },
     "minimum-stability": "stable"
 }
 
