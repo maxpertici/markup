@@ -5,11 +5,11 @@
 
 📚 **[Complete Documentation](https://maxpertici.github.io/markup/)** | [Getting Started](https://maxpertici.github.io/markup/getting-started) | [Markup](https://maxpertici.github.io/markup/markup) | [MarkupFactory](https://maxpertici.github.io/markup/markup-factory) | [MarkupSlot](https://maxpertici.github.io/markup/markup-slot) | [MarkupFinder](https://maxpertici.github.io/markup/markup-finder)
 
-A flexible and intuitive PHP library for building HTML markup structures using a fluent, chainable API. Create reusable components with slots, manage CSS classes and attributes, and render HTML efficiently.
+A flexible and intuitive PHP library for building HTML markup structures using a fluent, chainable API. Parse existing HTML, modify and manipulate it easily, or create reusable components with slots, manage CSS classes and attributes, and render HTML efficiently.
 
 ## Introduction
 
-**Markup** provides a modern, object-oriented approach to generating HTML in PHP. Instead of mixing HTML strings or using complex templating engines, Markup offers:
+**Markup** provides a modern, object-oriented approach to handling HTML in PHP. Instead of mixing HTML strings or using complex templating engines, Markup offers:
 
 - ✨ **Fluent API** - Chain methods for intuitive markup building
 - 🎯 **Slot System** - Named placeholders like Vue.js or Laravel Blade
@@ -46,19 +46,28 @@ require 'vendor/autoload.php';
 use MaxPertici\Markup\Markup;
 
 // Simple element creation
-$paragraph = new Markup('<p>%children%</p>', children: ['Hello, World!']);
+$paragraph = new Markup(
+    wrapper: '<p>%children%</p>',
+    children: ['Hello, World!']
+);
 echo $paragraph->render();
 // Output: <p>Hello, World!</p>
 
 // Create with classes and attributes using Markup::make()
-$div = Markup::make('div', ['container', 'text-center'], ['id' => 'main']);
+$div = Markup::make(
+    tag: 'div',
+    classes: ['container', 'text-center'],
+    attributes: ['id' => 'main']
+);
 $div->append('Content here');
 
 echo $div->render();
 // Output: <div class="container text-center" id="main">Content here</div>
 
 // Parse existing HTML with Markup::fromHtml()
-$card = Markup::fromHtml('<div class="card"><h2>Title</h2></div>');
+$card = Markup::fromHtml(
+    html: '<div class="card"><h2>Title</h2></div>'
+);
 $card->addClass('shadow')
      ->setAttribute('data-enhanced', 'true');
 
@@ -70,20 +79,29 @@ echo $card->render();
 
 ```php
 // Card component
-$card = new Markup('<div class="card">%children%</div>');
+$card = new Markup(
+    wrapper: '<div class="card">%children%</div>'
+);
 $card->children(
-    new Markup('<h2 class="card-title">%children%</h2>', children: ['Card Title']),
-    new Markup('<p class="card-body">%children%</p>', children: ['Card content'])
+    new Markup(
+        wrapper:'<h2 class="card-title">%children%</h2>',
+        children: ['Card Title']
+    ),
+    new Markup(
+        wrapper:'<p class="card-body">%children%</p>',
+        children: ['Card content']
+    )
 );
 
 echo $card->render();
 ```
 
 **Output:**
+
 ```html
 <div class="card">
-    <h2 class="card-title">Card Title</h2>
-    <p class="card-body">Card content</p>
+  <h2 class="card-title">Card Title</h2>
+  <p class="card-body">Card content</p>
 </div>
 ```
 
@@ -91,9 +109,9 @@ echo $card->render();
 
 ```php
 $button = new Markup(
-    '<button class="%classes%" %attributes%>%children%</button>',
-    classes: ['btn', 'btn-primary'],
-    attributes: ['type' => 'submit', 'id' => 'submit-btn'],
+    wrapper: '<button class="%classes%" %attributes%>%children%</button>',
+    wrapperClasses: ['btn', 'btn-primary'],
+    wrapperAttributes: ['type' => 'submit', 'id' => 'submit-btn'],
     children: ['Submit']
 );
 
@@ -137,14 +155,28 @@ echo $layout->render();
 
 ```php
 // Build a page structure
-$page = Markup::make('div', ['page'])
-    ->children(
-        Markup::make('header', ['header']),
-        Markup::make('main', ['content'])->children(
-            Markup::make('p', ['intro'])->append('Introduction text'),
-            Markup::make('p', ['highlight'])->append('Important note')
-        )
-    );
+$page = Markup::make(
+    tag: 'div',
+    classes: ['page']
+)->children(
+    Markup::make(
+        tag: 'header',
+        classes: ['header']
+    ),
+    Markup::make(
+        tag: 'main',
+        classes: ['content']
+    )->children(
+        Markup::make(
+            tag: 'p',
+            classes: ['intro']
+        )->append('Introduction text'),
+        Markup::make(
+            tag: 'p',
+            classes: ['highlight']
+        )->append('Important note')
+    )
+);
 
 // Find elements using CSS selectors
 $headers = $page->find()->css('.header')->get();
@@ -165,11 +197,19 @@ $page->find()->tag('p')->get()
 
 ```php
 // Conditional rendering
-$card = Markup::make('div', ['card'])->append('Regular content');
+$card = Markup::make(
+    tag: 'div',
+    classes: ['card']
+)->append('Regular content');
 $isAdmin = true;
 
 $card->when($isAdmin, function($markup) {
-    $markup->append(Markup::make('div', ['admin-panel'])->append('Admin tools'));
+    $markup->append(
+        Markup::make(
+            tag: 'div',
+            classes: ['admin-panel'])
+        ->append('Admin tools')
+    );
 });
 
 // Loop through data
@@ -178,10 +218,11 @@ $users = [
     ['name' => 'Bob', 'email' => 'bob@example.com'],
 ];
 
-$list = Markup::make('ul');
+$list = Markup::make(tag: 'ul');
 $list->each($users, function($user, $index, $markup) {
     $markup->append(
-        Markup::make('li')->append("{$user['name']} - {$user['email']}")
+        Markup::make(tag: 'li')
+        ->append("{$user['name']} - {$user['email']}")
     );
 });
 
@@ -220,18 +261,20 @@ echo $nav->render();
 ```
 
 **Output:**
+
 ```html
 <ul>
-    <li>Home</li>
-    <li>About</li>
-    <li>Products
-        <ul>
-            <li>Electronics</li>
-            <li>Clothing</li>
-            <li>Books</li>
-        </ul>
-    </li>
-    <li>Contact</li>
+  <li>Home</li>
+  <li>About</li>
+  <li>
+    Products
+    <ul>
+      <li>Electronics</li>
+      <li>Clothing</li>
+      <li>Books</li>
+    </ul>
+  </li>
+  <li>Contact</li>
 </ul>
 ```
 
@@ -246,7 +289,7 @@ use MaxPertici\Markup\Markup;
 
 // Fetch and parse HTML
 $html = file_get_contents('https://example.com/blog');
-$page = Markup::fromHtml($html);
+$page = Markup::fromHtml(html: $html);
 
 // Find articles and process with collection methods
 $articles = $page->find()->tag('article')->get();
@@ -255,7 +298,7 @@ $articles->each(function($article) {
     // Get title and excerpt
     $title = $article->find()->tag('h2')->first();
     $excerpt = $article->find()->tag('p')->first();
-    
+
     if ($title) {
         echo "Title: " . $title->text() . "\n";
     }
@@ -312,26 +355,34 @@ Create elements quickly with `Markup::make()` (shortcut for `MarkupFactory::crea
 
 ```php
 // Create elements with Markup::make()
-$div = Markup::make('div', ['container'], ['id' => 'main']);
+$div = Markup::make(
+    tag: 'div',
+    classes: ['container'],
+    attributes: ['id' => 'main']
+);
 $div->append('Content here');
 
 // Or use MarkupFactory directly
-$div = MarkupFactory::create('div', ['container'], ['id' => 'main']);
+$div = MarkupFactory::create(
+    tag: 'div',
+    classes: ['container'],
+    attributes: ['id' => 'main']
+);
 
 // Parse HTML with Markup::fromHtml()
-$markup = Markup::fromHtml('<div class="box">Content</div>');
+$markup = Markup::fromHtml(html: '<div class="box">Content</div>');
 $markup->addClass('shadow');
 
 // Or use MarkupFactory directly
-$markup = MarkupFactory::fromHtml('<div class="box">Content</div>');
+$markup = MarkupFactory::fromHtml(html: '<div class="box">Content</div>');
 
 // Use predefined elements with enums
 use MaxPertici\Markup\Elements\HtmlTag;
 
 $button = MarkupFactory::fromElement(
-    HtmlTag::BUTTON,
-    ['Click me'],
-    ['btn', 'btn-primary']
+    element: HtmlTag::BUTTON,
+    children: ['Click me'],
+    classes: ['btn', 'btn-primary']
 );
 ```
 
@@ -390,7 +441,10 @@ enum BootstrapComponent implements MarkupElementInterface {
     // ... implement required methods
 }
 
-$card = MarkupFactory::fromElement(BootstrapComponent::CARD, ['Card content']);
+$card = MarkupFactory::fromElement(
+    element: BootstrapComponent::CARD,
+    classes: ['Card content']
+);
 ```
 
 ## License
@@ -412,4 +466,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 Made with ❤️ by [Max Pertici](https://maxpertici.fr)
-
