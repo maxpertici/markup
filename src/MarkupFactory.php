@@ -165,7 +165,7 @@ class MarkupFactory {
 			$wrapper = sprintf( '<%s class="%%classes%%" %%attributes%%>%%children%%</%s>', $tag, $tag );
 			$markup  = new Markup( $wrapper, $classes, $attributes );
 
-			if ( in_array( strtolower( $tag ), [ 'script', 'style' ], true ) ) {
+			if ( in_array( strtolower( $tag ), [ 'script', 'style', 'noscript', 'textarea', 'title', 'xmp', 'plaintext' ], true ) ) {
 				$markup->children( $inner_html );
 				return $markup;
 			}
@@ -359,8 +359,8 @@ class MarkupFactory {
 					continue;
 				}
 
-				// Special handling for script/style: take raw content until closing tag
-				if ( in_array( strtolower( $tag ), [ 'script', 'style' ], true ) ) {
+				// Special handling for script/style/noscript/textarea/title/xmp/plaintext: take raw content until closing tag
+				if ( in_array( strtolower( $tag ), [ 'script', 'style', 'noscript', 'textarea', 'title', 'xmp', 'plaintext' ], true ) ) {
 					$close_tag = '</' . strtolower( $tag ) . '>';
 					$close_pos = stripos( $html, $close_tag, $tag_start + strlen( $tag_string ) );
 					if ( false !== $close_pos ) {
