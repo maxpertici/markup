@@ -179,9 +179,9 @@ class Markup implements MarkupInterface {
 	 *
 	 * @param string   $html      The HTML string to parse.
 	 * @param int|null $maxDepth  Optional. Maximum parsing depth. Default null (unlimited).
-	 * @return self A new Markup instance representing the parsed HTML.
+	 * @return Contracts\MarkupInterface A new Markup instance or a MarkupFlow when multiple roots are detected.
 	 */
-	public static function fromHtml( string $html, ?int $maxDepth = null ): self {
+	public static function fromHtml( string $html, ?int $maxDepth = null ): Contracts\MarkupInterface {
 		return MarkupFactory::fromHtml( $html, $maxDepth );
 	}
 

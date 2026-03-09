@@ -110,8 +110,8 @@ class MarkupFactory {
 	 * Note: HTML comments (<!-- ... -->) are automatically removed during parsing.
 	 * 
 	 * If the HTML contains multiple root-level elements (e.g., multiple divs or
-	 * elements at the same level), they will be automatically wrapped in a
-	 * container div element.
+	 * elements at the same level), they will be returned inside a MarkupFlow
+	 * instead of being wrapped in a container element.
 	 *
 	 * Example usage:
 	 * ```php
@@ -122,7 +122,7 @@ class MarkupFactory {
 	 * 
 	 * // Multiple root elements - will be wrapped in a div
 	 * $html = '<noscript>...</noscript><header>...</header><main>...</main>';
-	 * $markup = MarkupFactory::fromHtml($html); // Wrapped in div automatically
+	 * $markup = MarkupFactory::fromHtml($html); // Returned as MarkupFlow
 	 * 
 	 * // Limit parsing depth to 3 levels
 	 * $markup = MarkupFactory::fromHtml($html, 3);
@@ -133,9 +133,9 @@ class MarkupFactory {
 	 * @param string   $html          The HTML string to parse.
 	 * @param int|null $max_depth     Optional. Maximum parsing depth. Default null (unlimited).
 	 * @param int      $current_depth Internal. Current depth level. Default 0.
-	 * @return Markup A new Markup instance representing the parsed HTML tree.
+	 * @return Contracts\MarkupInterface A new Markup instance or a MarkupFlow when multiple roots are detected.
 	 */
-	public static function fromHtml( string $html, ?int $max_depth = null, int $current_depth = 0 ): Markup {
+	public static function fromHtml( string $html, ?int $max_depth = null, int $current_depth = 0 ): Contracts\MarkupInterface {
 		// Remove HTML comments
 		$html = preg_replace( '/<!--(.|\s)*?-->/', '', $html );
 		
@@ -165,12 +165,17 @@ class MarkupFactory {
 			$wrapper = sprintf( '<%s class="%%classes%%" %%attributes%%>%%children%%</%s>', $tag, $tag );
 			$markup  = new Markup( $wrapper, $classes, $attributes );
 
+			if ( in_array( strtolower( $tag ), [ 'script', 'style' ], true ) ) {
+				$markup->children( $inner_html );
+				return $markup;
+			}
+
 			// Parse children recursively with depth tracking
 			$children = self::parseChildren( $inner_html, $max_depth, $current_depth + 1 );
-			
+
 			// Group children if appropriate
 			$children = self::maybeGroupChildren( $children, $tag );
-			
+
 			foreach ( $children as $child ) {
 				$markup->children( $child );
 			}
@@ -196,16 +201,9 @@ class MarkupFactory {
 		if ( preg_match( '/<\w+/', $html ) ) {
 			$children = self::parseChildren( $html, $max_depth, $current_depth );
 			
-			// If we found multiple elements, wrap them in a div
+			// If we found multiple elements, return a flow instead of wrapping
 			if ( count( $children ) > 1 || ( count( $children ) === 1 && $children[0] instanceof Markup ) ) {
-				$wrapper = '<div class="%classes%" %attributes%>%children%</div>';
-				$markup  = new Markup( $wrapper, [], [] );
-				
-				foreach ( $children as $child ) {
-					$markup->children( $child );
-				}
-				
-				return $markup;
+				return new MarkupFlow( $children );
 			}
 		}
 
@@ -359,6 +357,19 @@ class MarkupFactory {
 					$children[] = self::fromHtml( $element, $max_depth, $current_depth );
 					$offset     = $tag_start + strlen( $tag_string );
 					continue;
+				}
+
+				// Special handling for script/style: take raw content until closing tag
+				if ( in_array( strtolower( $tag ), [ 'script', 'style' ], true ) ) {
+					$close_tag = '</' . strtolower( $tag ) . '>';
+					$close_pos = stripos( $html, $close_tag, $tag_start + strlen( $tag_string ) );
+					if ( false !== $close_pos ) {
+						$element_length = $close_pos + strlen( $close_tag ) - $tag_start;
+						$element = substr( $html, $tag_start, $element_length );
+						$children[] = self::fromHtml( $element, $max_depth, $current_depth );
+						$offset = $tag_start + $element_length;
+						continue;
+					}
 				}
 
 				// Find matching closing tag

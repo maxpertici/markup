@@ -7,6 +7,8 @@
 
 namespace MaxPertici\Markup;
 
+use MaxPertici\Markup\Contracts\MarkupInterface;
+
 /**
  * Class MarkupFlow
  *
@@ -36,7 +38,7 @@ namespace MaxPertici\Markup;
  *
  * @since 1.0.0
  */
-class MarkupFlow {
+class MarkupFlow implements MarkupInterface {
 
 	/**
 	 * The items flowing together.
@@ -103,6 +105,30 @@ class MarkupFlow {
 	 */
 	public function count(): int {
 		return count( $this->items );
+	}
+
+	/**
+	 * Renders the flow as a string.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return string The generated markup content.
+	 */
+	public function render(): string {
+		$markup = new Markup( '', [], [], '', $this->items );
+		return $markup->render();
+	}
+
+	/**
+	 * Prints the flow directly.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	public function print(): void {
+		$markup = new Markup( '', [], [], '', $this->items );
+		$markup->print();
 	}
 
 }
