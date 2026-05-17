@@ -214,6 +214,7 @@ setAttribute(string $name, ?string $value): self
 $markup->setAttribute('id', 'main-content');
 $markup->setAttribute('data-user-id', '123');
 $markup->setAttribute('role', 'navigation');
+$markup->setAttribute('required', '');
 
 // Remove an attribute (null value)
 $markup->setAttribute('disabled', null);
@@ -1220,4 +1221,3 @@ $list = new Markup(
 - [MarkupQueryBuilder](markup-query-builder.html) - Fluent query builder
 - [MarkupCollection](markup-collection.html) - Collection methods
 - [Getting Started](getting-started.html) - Introduction and first steps
-
