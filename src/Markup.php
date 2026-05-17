@@ -664,7 +664,7 @@ class Markup implements MarkupInterface {
 	 * Sets or removes an HTML attribute on the wrapper element.
 	 *
 	 * If value is provided, sets the attribute. If value is null, removes the attribute.
-	 * For boolean attributes (e.g., disabled, readonly), pass the attribute name as the value.
+	 * For boolean attributes (e.g., disabled, readonly), pass an empty string as the value.
 	 *
 	 * @since 1.0.0
 	 *
@@ -1928,7 +1928,11 @@ class Markup implements MarkupInterface {
 		if ( ! empty( $this->wrapperAttributes ) ) {
 			$attributes = [];
 			foreach ( $this->wrapperAttributes as $attribute => $value ) {
-				$attributes[] = $attribute . '="' . $value . '"';
+				if ( '' === $value ) {
+					$attributes[] = $attribute;
+				} else {
+					$attributes[] = $attribute . '="' . $value . '"';
+				}
 			}
 			$attributesStr = ' ' . implode( ' ', $attributes );
 		} else {
@@ -2092,4 +2096,3 @@ class Markup implements MarkupInterface {
 	}
 
 }
-
