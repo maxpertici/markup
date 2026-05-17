@@ -1931,7 +1931,7 @@ class Markup implements MarkupInterface {
 				if ( '' === $value ) {
 					$attributes[] = $attribute;
 				} else {
-					$attributes[] = $attribute . '="' . $value . '"';
+					$attributes[] = $attribute . '="' . htmlspecialchars( (string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8' ) . '"';
 				}
 			}
 			$attributesStr = ' ' . implode( ' ', $attributes );
